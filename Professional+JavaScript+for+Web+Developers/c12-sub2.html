@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BOM Sub Sub Page</title>
+    <script>
+        function goSub2() {
+            // self.parent.open('./c12-sub2.html', "_parent");
+            self.parent.open('./c12-sub2.html', "newWindow", "location=yes,height=200,left=100,top=0,width=500,Menubar=yes,resizable=no");
+        }
+        function goSub() {
+            // self.parent.open('./c12-sub.html', "newWindow");
+            self.parent.open('./c12-sub.html', "innerFrame");
+        }
+        function closeSelf() {
+            top.close();
+        }
+    </script>
+</head>
+<body>
+<p>I am sub2.</p>
+<button onclick="goSub2();">open sub2</button>
+<button onclick="goSub();">open sub</button>
+<a href="./c12-sub.html" target="newWindow">to sub</a>
+<button onclick="closeSelf();">close self</button>
+<script>
+    console.log(top);
+    console.log(parent);
+    console.log(self);
+    // setTimeout(()=> self.parent.open('./c12-sub.html'), 1000);
+</script>
+</body>
+</html>

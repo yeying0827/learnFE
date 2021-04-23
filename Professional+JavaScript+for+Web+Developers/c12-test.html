@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>c12-test-flexible</title>
+    <script src="./utils/flexible.js"></script>
+    <style>
+        #one {
+            border: 1px solid #333;
+        }
+        .small {
+            position: relative;
+            height: 1rem;
+            border: 1px solid #333;
+        }
+        .small::after {
+            position: absolute;
+            bottom: 4px;
+            left: 1px;
+            content: "";
+            width: 1rem;
+            height: 1px;
+            background-color: #000;
+            transform: scale(0.5);
+        }
+        [data-dpr="1"] .small {
+            font-size: 12px;
+        }
+        [data-dpr="2"] .small {
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+  <p style="font-size: .5rem;">font-size: .5rem;</p>
+  <p style="font-size: 1rem;" id="one">font-size: 1rem;</p>
+  <p class="small">font-size: 12px;</p>
+  <p style="font-size: 1.5rem;">font-size: 1.5rem;</p>
+  <p style="font-size: 2rem;">font-size: 2rem;</p>
+  <p style="font-size: 2.5rem;">font-size: 2.5rem;</p>
+  <script>
+    alert(document.documentElement.style.fontSize);
+    alert(window.innerWidth);
+    alert(window.outerWidth);
+    setTimeout(()=> alert(getComputedStyle(document.querySelector('#one')).fontSize), 2000);
+  </script>
+</body>
+</html>

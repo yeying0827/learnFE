@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>BOM Sub Page</title>
+</head>
+<body>
+<button id="openSub">open Sub Sub Page</button>
+<button onclick="closeSubWindow();">close Sub Sub Page</button>
+<iframe src="./c12-sub2.html" frameborder="0" name="innerFrame"></iframe>
+<script>
+    let a;
+    document.querySelector('#openSub').addEventListener('click', () => {
+        a = self.parent.open('./c12-sub2.html', "newWindow"); // self.parent.open('./c12-sub2.html', "newWindow");
+    });
+    function closeSubWindow() {
+        a.close();
+        alert(a.closed);
+    }
+    console.log(top);
+    console.log(parent);
+    console.log(self);
+    console.log(self.outerWidth);
+    console.log(self.innerWidth);
+    console.log(parent.innerWidth);
+</script>
+</body>
+</html>
