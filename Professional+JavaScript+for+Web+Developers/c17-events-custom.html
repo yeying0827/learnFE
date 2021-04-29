@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>模拟事件</title>
+</head>
+<body>
+	<button id="myBtn">我是一个按钮</button>
+	<input id="myTextbox" type="text" placeholder="模拟键盘事件"/>
+	<input id="myTextboxff" type="text" placeholder="模拟键盘事件（ff）"/>
+	<div id="myDiv"></div>
+	<script type="text/javascript">
+		document.addEventListener("DOMContentLoaded", event => {
+			document.querySelector('#myTextboxff').addEventListener("focus", event => console.log(event));
+
+			let textboxff = document.getElementById("myTextboxff");
+			let htmlEvent = document.createEvent("HTMLEvents");
+			htmlEvent.initEvent("focus", true, false);
+			textboxff.dispatchEvent(htmlEvent);
+			// 测试：能监听到事件，但是没有光标
+
+			let div = document.getElementById("myDiv"), customEvent;
+			div.addEventListener("myevent", event => {
+				console.log(`DIV: ${event.detail}`);
+			});
+			document.addEventListener("myevent", event => {
+				console.log(`DOCUMENT: ${event.detail}`);
+			});
+
+			document.querySelector('#myTextbox').addEventListener("keydown", event => console.log(event));
+			document.querySelector('#myBtn').addEventListener("click", event => {
+				console.log(event);
+				// 模拟自定义事件
+				if(document.implementation.hasFeature("CustomEvents", "3.0")) {
+					customEvent = document.createEvent("CustomEvent");
+					customEvent.initCustomEvent("myevent", true, false, "Hello world!");
+					div.dispatchEvent(customEvent);
+				}
+
+				// 模拟键盘事件
+				let textbox = document.getElementById("myTextbox"), keyboardEvent;
+				if(document.implementation.hasFeature("KeyboardEvents", "3.0")) {
+					// textbox.focus();
+					keyboardEvent = document.createEvent("KeyboardEvent");
+					keyboardEvent.initKeyboardEvent("keydown", true, true, window, "a", 0, "Shift", 1);
+					textbox.dispatchEvent(keyboardEvent);
+					// 测试Chrome，ff：对应的event对象打印出的key为空字符串""（ff打印"a"），且altKey和ctrlKey为true，shiftKey为false
+					// 测试Chrome，ff，Safari：文本框中无内容
+				}
+				var e = new KeyboardEvent("keydown", {bubbles : true, cancelable : true, key : "Q", char : "Q", shiftKey : true});
+				textbox.dispatchEvent(e);
+				// 测试Chrome，ff：对应的event对象打印出的key为空字符串"Q"，只有shiftKey为true
+				// 测试Chrome，ff，Safari：文本框中无内容
+
+				// 通用样本
+				let event1 = document.createEvent("Events");
+				event1.initEvent("keydown", true, true);
+				event1.view = document.defaultView;
+				event1.altKey = false;
+				event1.ctrlKey = false;
+				event1.shiftKey = false;
+				event1.metaKey = false;
+				event1.keyCode = 65;
+				event1.charCode = 65;
+				textbox.dispatchEvent(event1);
+				// 测试：可以模拟事件通用属性
+				// 文本框中无内容
+
+
+				// 模拟ff键盘事件
+				// let keyEvent = document.createEvent("KeyEvents");
+				// keyEvent.initKeyEvent("keydown", true, true, document.defaultView, false,
+				// 	false, true, false, 65, 65);
+				// textboxff.dispatchEvent(keyEvent);
+				// 测试：ff（88.0）显式不支持 Uncaught DOMException: Operation is not supported
+			});
+			let btn = document.getElementById('myBtn');
+			// 1.创建event对象
+			let mouseEvent = document.createEvent("MouseEvents"); 
+			// 2.初始化event对象
+			mouseEvent.initMouseEvent("click", true, true, document.defaultView, 0, 
+				0, 0, 0, 0, false, false, false, false, 0, null);
+			// 3.触发事件
+			btn.dispatchEvent(mouseEvent);
+		});
+	</script>
+</body>
+</html>

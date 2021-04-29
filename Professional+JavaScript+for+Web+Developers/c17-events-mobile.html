@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>设备事件测试</title>
+</head>
+<body>
+	<p>iOS支持的orientationchange事件</p>
+	<div id="myDiv"></div>
+	<p>DeviceOrientationEvent规范定义的事件：deviceorientation 只反应设备在空间中的朝向</p>
+	<div id="deviceorientation"></div>
+	<p>DeviceOrientationEvent规范定义的事件：devicemotion  提示设备实际上在移动，不仅仅是改变朝向</p>
+	<div id="devicemotion"></div>
+	<p>触摸事件</p>
+	<div id="touches"></div>
+	<p>手势事件</p>
+	<div id="gesture"></div>
+	<script type="text/javascript">
+		// iOS
+		// 0-垂直模式 90-左转水平模式 -90-右转水平模式
+		// 锁定竖屏=>不会改变
+		window.addEventListener("load", event => {
+			let div = document.getElementById("myDiv");
+			div.innerHTML = `Current orientation is ${window.orientation}`;
+			window.addEventListener("orientationchange", event => {
+				div.innerHTML = `Current orientation is ${window.orientation}`;
+			});
+		});
+		// 规范
+		// 测试iPhone8（iOS11.4.1）平放在桌面上也一直监听到变动（？）
+		// 测试Android（一加三）平放在桌面上后不会变动
+		window.addEventListener("deviceorientation", event => {
+			let output = document.getElementById("deviceorientation");
+			output.innerHTML = `Alpha=${event.alpha}, Beta=${event.beta}, Gamma=${event.gamma}<br>`;
+		});
+		// 规范
+		// 测试iPhone8（iOS11.4.1）平放在桌面上也一直监听到变动
+		// 测试Android（一加三）平放在桌面上也一直监听到变动
+		window.addEventListener("devicemotion", event => {
+			let output = document.getElementById("devicemotion");
+			if(event.rotationRate !== null) {
+				output.innerHTML = `Alpha=${event.rotationRate.alpha}`+
+								`Beta=${event.rotationRate.beta}`+
+								`Gamma=${event.rotationRate.gamma}`;
+			}
+		});
+		// 触摸事件
+		function handleTouchEvent(event) {
+			if(event.touches.length === 1 || (event.touches.length === 0 && event.changedTouches.length === 1) ) {
+				let output = document.getElementById("touches");
+				switch(event.type) {
+					case "touchstart":
+						console.log("touchstart");
+						output.innerHTML += `<br>Touch started: (${event.touches[0].clientX} ${event.touches[0].clientY})`;
+						break;
+					case "touchend":
+						// touchend事件触发时，touches集合中什么也没有
+						console.log("touchend");
+						output.innerHTML += `<br>Touch ended: (${event.changedTouches[0].clientX} ${event.changedTouches[0].clientY})`;
+						break;
+					case "touchmove":
+						event.preventDefault(); // 阻止滚动
+						console.log("touchmove");
+						output.innerHTML += `<br>Touch moved: (${event.changedTouches[0].clientX} ${event.changedTouches[0].clientY})`;
+						break;
+				}
+			}
+		}
+		document.addEventListener("touchstart", handleTouchEvent);
+		document.addEventListener("touchend", handleTouchEvent);
+		document.addEventListener("touchmove", handleTouchEvent);
+
+		document.addEventListener("mousemove", () => console.log("mousemove"));
+		document.addEventListener("mouseover", () => console.log("mouseover"));
+		document.addEventListener("mousedown", () => console.log("mousedown"));
+		document.addEventListener("mouseup", () => console.log("mouseup"));
+		document.addEventListener("click", () => console.log("click"));
+
+		// 手势事件
+		function handlerGestureEvent(event) {
+			let output = document.getElementById("gesture");
+			switch(event.type) {
+				case "gesturestart": 
+					output.innerHTML += `Gesture started: rotation=${event.rotation}, scale=${event.scale}`;break;
+				case "gestureend":
+					output.innerHTML += `Gesture ended: rotation=${event.rotation}, scale=${event.scale}`; break;
+				case "gesturechange":
+					output.innerHTML += `Gesture changed: rotation=${event.rotation}, scale=${event.scale}`; break;
+			}
+		}
+		document.addEventListener("gesturestart", handlerGestureEvent);
+		document.addEventListener("gestureend", handlerGestureEvent);
+		document.addEventListener("gesturechange", handlerGestureEvent);
+	</script>
+</body>
+</html>

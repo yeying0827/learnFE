@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>第17章 事件</title>
+	<script type="text/javascript" src="./c17-events.js" defer></script>
+	<script type="text/javascript" src="./c17-events-ff.js" defer></script>
+	<style type="text/css">
+		#container {
+			height: 500px;
+		}
+	</style>
+</head>
+<body>
+	<div id="container">
+		<a href="https://baidu.com" target="_blank" id="link">我是一个a标签</a>
+		<button id="button">我是一个按钮</button>
+		<form method="post">
+			<input type="text" name="username" placeholder="我是一个输入框" id="input">
+			<input type="button" value="Echo name" onclick="console.log(event.type);console.log(value);console.log(username.value);console.log(event.detail);console.log(event.eventPhase);console.log(this===event.currentTarget);" id="echoBtn" >
+		</form>
+		<button id="mouse">鼠标事件测试</button>
+		<ul id="myMenu" style="position: absolute; visibility: hidden; background-color: silver; ">
+			<li><a href="http://www.baidu.com">BaiDu</a></li>
+			<li><a href="http://www.wrox.com">Wrox Site</a></li>
+			<li><a href="http://douban.com">DouBan</a></li>
+		</ul>
+	</div>
+	<script type="text/javascript">
+		document.body.addEventListener('click', event => {
+			console.log('DOM2', event.eventPhase);
+			// event.stopPropagation();
+		}, true);
+		document.body.onclick = function(event) {
+			console.log(event.currentTarget === document.body);
+			console.log(this === document.body);
+			console.log(event.target === document.querySelector('#button'));
+			console.log(event.target === document.getElementById('button'));
+			console.log(event.eventPhase);
+		};
+		document.querySelector('#button').onclick = function(event) {
+			console.log('click me');
+			console.log(event.eventPhase);
+			event.stopPropagation();
+		}
+		document.querySelector('#link').onclick = function(event) {
+			event.preventDefault();
+			console.log(event.target);
+			location.hash = "#detail";
+		};
+		window.onload = function(event) {
+			console.log("window load");
+			let div = document.getElementById('container');
+			div.addEventListener("contextmenu", event => {
+				event.preventDefault();
+				let menu = document.getElementById('myMenu');
+				menu.style.left = event.clientX + "px";
+				menu.style.top = event.clientY + "px";
+				menu.style.visibility = "visible";
+			});
+			div.addEventListener("click", event => {
+				document.getElementById('myMenu').style.visibility = "hidden";
+			});
+		};
+		/*window.addEventListener("beforeunload", event => {
+			let message = "确定离开页面吗？";
+			event.returnValue = message;
+			// return message;
+		});*/
+		document.addEventListener("DOMContentLoaded", event => {
+			console.log("Content loaded");
+		});
+		document.addEventListener("readystatechange", event => {
+			if(document.readyState === "interactive") {
+				console.log(event.target.readyState);
+			}
+		});
+		// 刷新页面依次打印如下
+		// interactive
+		// Content loaded
+		// window load
+		window.addEventListener("hashchange", event => {
+			console.log(`Old URL: ${event.oldURL}, New URL: ${event.newURL}`);
+			console.log(`Current hash: ${location.hash}`);
+		});
+	</script>
+</body>
+</html>
