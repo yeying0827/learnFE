@@ -49,6 +49,7 @@
 		};
 		window.onload = function(event) {
 			console.log("window load");
+			console.log(event.target);
 			let div = document.getElementById('container');
 			div.addEventListener("contextmenu", event => {
 				event.preventDefault();
@@ -61,17 +62,18 @@
 				document.getElementById('myMenu').style.visibility = "hidden";
 			});
 		};
-		/*window.addEventListener("beforeunload", event => {
+		window.addEventListener("beforeunload", event => {
 			let message = "确定离开页面吗？";
 			event.returnValue = message;
 			// return message;
-		});*/
+		});
 		document.addEventListener("DOMContentLoaded", event => {
 			console.log("Content loaded");
 		});
 		document.addEventListener("readystatechange", event => {
+			console.log(event.target.readyState);
 			if(document.readyState === "interactive") {
-				console.log(event.target.readyState);
+				console.log(event.target);
 			}
 		});
 		// 刷新页面依次打印如下
