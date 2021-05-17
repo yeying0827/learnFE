@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>c18 Canvas</title>
+</head>
+<body>
+<canvas id="drawing" width="200" height="200">A drawing of something.</canvas><canvas id="trans" width="200" height="200">A drawing of trans.</canvas>
+<img src="./images/smile.png" alt="" width="200" height="200">
+<canvas id="image" width="300" height="300"></canvas>
+<canvas id="gradientCanvas" width="300" height="300"></canvas>
+<p>123</p>
+<script>
+    let drawing = document.getElementById("drawing");
+    if (drawing.getContext) {
+        let context = drawing.getContext("2d");
+        context.strokeStyle = "#000000";
+        context.fillStyle = "#0000ff";
+        // console.log(context);
+
+        // =================start 绘制矩形
+        context.fillStyle = "#ff0000";
+        context.fillRect(10, 10, 50, 50);
+        context.fillStyle = "rgba(0, 0, 255, 0.5)";
+        context.fillRect(30, 30, 50, 50);
+        // 绘制矩形轮廓
+        /*context.strokeStyle = "#ff0000";
+        context.strokeRect(10, 10, 50, 50);
+        context.lineWidth = "10.5";
+        // context.lineCap = "square";
+        context.lineJoin = "miter";
+        context.strokeStyle = "rgba(0, 0, 255, 0.5)";
+        context.strokeRect(30, 30, 50, 50);*/
+        // 矩形擦除
+        context.clearRect(40, 40, 10, 10);
+
+        // =================start 绘制路径
+        // 开始绘制新路径
+        context.beginPath();
+        // ...
+        // 绘制外圆
+        context.arc(100, 100, 99, 0, Math.PI/2, false);
+        // 绘制内圆
+        context.moveTo(194, 100);// 移动到内圆弧线上的一点
+        context.arc(100, 100, 94, 0, 2*Math.PI, false);
+        /*
+        context.moveTo(50, 50);
+        context.arcTo(100, 194, 194, 100, 94); // 前四个参数应该是指的控制点的坐标
+        */
+        // 绘制分针
+        context.moveTo(100, 100);
+        context.lineTo(100, 15);
+        // 绘制时针
+        context.moveTo(100, 100);
+        context.lineTo(35, 100);
+        // 描画路径！！
+        context.stroke();
+        /*if(context.isPointInPath(100, 125)) {
+            alert("Point(100, 100) is in the path.");
+        }*/
+
+        // =================start 绘制文本
+        // context.font = "bold 14px Arial";
+        context.textAlign = "center";
+        context.textBaseline = "middle";
+        context.fillText("12", 100, 20);
+
+        let fontSize = 100;
+        context.font = `${fontSize}px Arial`;
+        context.textAlign = "start";
+        context.textBaseline = "top";
+        while (context.measureText("Hello world!").width > 140) { // 将文本放到一个140像素宽的矩形中（递减字体大小，直到文本大小合适）
+            fontSize --;
+            context.font = `${fontSize}px Arial`;
+        }
+        context.fillText("Hello world!", 10, 10);
+        context.fillText(`Font size is ${fontSize}px`, 10, 50);
+
+        context.font = `100px Arial`;
+        context.fillText("Hello world!", 80, 80, 140);
+
+
+        // =================start 导出canvas图像：取得图像的数据URI, 默认为"image/png"
+        let imgURI = drawing.toDataURL(); // drawing.toDataURL("image/jpeg");
+        // 显示图片
+        let image = document.createElement("img");
+        image.src = imgURI;
+        document.body.appendChild(image);
+    }
+
+    // =================start 变换
+    let trans = document.getElementById("trans");
+    if (trans.getContext) {
+        let context = trans.getContext("2d");
+
+        // =================start 设置阴影
+        context.shadowOffsetX = -5;
+        context.shadowOffsetY = 5;
+        context.shadowBlur = 20;
+        context.shadowColor = "rgba(0, 0, 0, 0.5)";
+
+        context.fillStyle = "#ff0000";
+        context.save(); // 保存设置红色填充
+        context.fillStyle = "#00ff00";
+        context.translate(100, 100);
+        context.save(); // 保存设置绿色填充，和矩阵变换
+        context.fillStyle = "#0000ff";
+        context.fillRect(0, 0, 100, 100); // -> 蓝色矩形
+        context.restore(); // 恢复绿色
+        context.fillRect(10, 10, 100, 100); // -> 绿色矩形
+        context.restore(); // 恢复红色，重置矩阵变换
+        context.fillRect(0, 0, 100, 100); // -> 红色矩形
+
+        context.beginPath();
+
+        context.arc(100, 100, 99, 0, 2*Math.PI, false);
+        context.moveTo(194, 100);
+        context.arc(100, 100, 94, 0, 2*Math.PI, false);
+
+        context.translate(100, 100); // 将实际上的(100, 100)变成(0, 0)
+        context.rotate(Math.PI/2); // 坐标系围绕原点旋转
+        // 绘制分针
+        context.moveTo(0, 0);
+        context.lineTo(0, -85);
+        // 绘制时针
+        context.moveTo(0, 0);
+        context.lineTo(-65, 0);
+
+        context.moveTo(0, 0);
+        context.rect(0, 0, 10, 10);
+
+        context.stroke();
+    }
+
+    // =================start 绘制图像
+    let image = document.getElementById('image');
+    if(image.getContext) {
+        let img = document.images[0]; // document.getElementById('drawing');
+        let context = image.getContext("2d");
+
+        // context.drawImage(img, 0, 0);
+        // context.drawImage(img, 0, 0, 300, 300);
+        context.drawImage(img, 0, 20, 300, 200, 0, 50, 300, 200);
+
+        // =================start 图像数据
+        let imageData, data, i, len, average, red, green, blue, alpha;
+        imageData = context.getImageData(0, 50, 300, 200);
+        data = imageData.data;
+        for(i = 0, len = data.length; i < len; i += 4) {
+            red = data[i];
+            green = data[i+1];
+            blue = data[i+2];
+            alpha = data[i+3];
+
+            // 取得RGB平均值
+            average = Math.floor((red + green + blue) / 3);
+
+            // 使用平均值得到灰阶色；使用255减去得到相反色
+            data[i] = 255-data[i];//average;
+            data[i+1] = 255-data[i+1];//average;
+            data[i+2] = 255-data[i+2];//average;
+        }
+        imageData.data = data;
+        // 将修改后的数据应用到画布上显式出来
+        context.putImageData(imageData, 0, 50);
+
+        // =================start 导出canvas图像：取得图像的数据URI, 默认为"image/png"
+        let imgURI = image.toDataURL(); // drawing.toDataURL("image/jpeg");
+        // 显示图片
+        let pic = document.createElement("img");
+        pic.src = imgURI;
+        document.body.appendChild(pic);
+    }
+</script>
+<script src="c18-canvas.js"></script>
+</body>
+</html>
