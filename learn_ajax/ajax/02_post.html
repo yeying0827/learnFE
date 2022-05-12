@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Ajax Post</title>
+    <style>
+        #result {
+            width: 200px;
+            height: 100px;
+            border: solid 1px #90d;
+        }
+    </style>
+</head>
+<body>
+    <div id="result"></div>
+    <script>
+        const result = document.getElementById('result');
+        result.addEventListener('mouseover', function() {
+            // 创建对象
+            const xhr = new XMLHttpRequest();
+            // 初始化 设置请求类型和url
+            xhr.open('POST', 'http://127.0.0.1:8000/server');
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.setRequestHeader('name', 'atguigu');
+            // 发送请求，语法上可以设置任意格式的请求体，实际开发中需要服务端能处理、能解析
+            xhr.send('a=100&b=200&c=300'); // 设置请求体并发送请求
+            // xhr.send('a:100&b:200&c:300'); // 设置请求体并发送请求
+            // xhr.send('12332131345'); // 设置请求体并发送请求
+            // 事件绑定 处理服务端返回的结果
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        // console.log(xhr.response);
+                        result.innerHTML = xhr.response;
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+</html>

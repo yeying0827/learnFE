@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>AJAX JSON POST</title>
+    <style>
+        #result {
+            width: 200px;
+            height: 100px;
+            border: solid 1px #d20;
+        }
+    </style>
+</head>
+<body>
+    <div id="result"></div>
+    <script>
+        const result = document.getElementById('result');
+        window.onkeydown = function () {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', 'http://127.0.0.1:8000/json-server');
+            xhr.send();
+            xhr.responseType = 'json';
+            xhr.onreadystatechange = function () {
+                if(xhr.readyState === 4) {
+                    if(xhr.status >= 200 && xhr.status < 300) {
+                        console.log(xhr.response);
+                        // 1. 手动转换
+                        // const data = JSON.parse(xhr.response);
+                        // result.innerHTML = data.name;
+                        // 2. 自动转换：设置responseType
+                        result.innerHTML = xhr.response.name;
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

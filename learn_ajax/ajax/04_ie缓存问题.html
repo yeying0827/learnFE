@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>IE 缓存</title>
+    <style>
+        #result {
+            width: 200px;
+            height: 100px;
+            border: solid 1px #d20;
+        }
+    </style>
+</head>
+<body>
+    <button>点我请求</button>
+    <div id="result"></div>
+    <script>
+        const btn = document.getElementsByTagName('button')[0];
+        const result = document.querySelector('#result');
+        btn.addEventListener('click', function () {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', 'http://127.0.0.1:8000/ie?t='+Date.now()); // ie会针对ajax做缓存，可以加上时间戳，就会被当作不同的请求
+            xhr.send();
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        result.innerHTML = xhr.response;
+                    }
+                }
+            }
+        })
+    </script>
+</body>
+</html>
