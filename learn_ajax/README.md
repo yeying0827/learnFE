@@ -1,3 +1,5 @@
+[教程链接](https://www.bilibili.com/video/BV1WC4y1b78y)
+
 ### Ajax介绍：
 
 Asynchronous JavaScript and xml
@@ -208,13 +210,13 @@ xhr.onerror = function () {
 }
 ```
 
-请求取消
+#### 请求取消
 
 ```javascript
 xhr.abort();
 ```
 
-重复请求：场景——连续多次点击按钮发送请求
+#### 重复请求：场景——连续多次点击按钮发送请求
 
 ```javascript
 let isSending = false; // 标识变量 是否正在发送Ajax请求
