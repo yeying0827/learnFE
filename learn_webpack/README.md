@@ -267,13 +267,15 @@ module.exports = {
     rules: [
       {
         test: /\.css$/i,
-        loaders: [MiniCssExtractPlugin.loader, 'css-loader']
+        use: [MiniCssExtractPlugin.loader, 'css-loader']
       }
     ]
   },
   plugins: [
     // ...,
-    new MiniCssExtractPlugin()
+    new MiniCssExtractPlugin({
+      filename: '[name].css' // 这里也可以使用hash
+    })
   ]
 }
 ```
@@ -287,3 +289,130 @@ module.exports = {
 production：会启用[TerserPlugin](https://github.com/webpack-contrib/terser-webpack-plugin)来压缩JS代码，让生成的代码文件更小
 
 development：会启用`devtools: 'eval'`配置，提升构建和再构建的速度
+
+
+
+### 资源利用
+
+* webpack官方文档或类库周边的文档
+* 社区的各种文章
+* github官方仓库的issues
+* 源码
+
+#### 官方文档建议查看顺序
+
+Guides 》Concepts 》Configuration 》Loaders 》Plugins 》API
+
+Github Issues 搜索技巧：[searching-issues-and-pull-requests](https://docs.github.com/en/search-github/searching-on-github/searching-issues-and-pull-requests)
+
+注意内容的时效性，留意版本的坑
+
+#### 查阅源码小技巧
+
+* 优先思考问题根源，列出可能导致问题的原因，再有针对性的查阅源码
+* 如有异常报错，仔细阅读报错信息和异常堆栈，根据其内容定位问题所在
+* 可以直接在node_modules中修改webpack或其他第三方类库的源码进行debug，方便快速定位
+* 实现一个可以复现问题的最小化demo，可以有效避免其他无关因素的干扰
+* 一些疑难杂症可以尝试使用github issues或者email和作者进行沟通，可以更有效率
+
+
+
+### 前端构建基础配置
+
+最基础的构建需求：
+
+* 构建发布需要的HTML、JS、CSS文件
+* 使用CSS预处理器来编写样式
+* 引用图片
+* 使用Babel来支持ES新特性
+* 本地提供静态服务以方便开发调试
+
+#### 1. 关联HTML
+
+如果文件名或者路径会变化，例如使用`[hash]`来进行命名，那最好将HTML引用路径和构建结果关联起来，可以使用[html-webpack-plugin](https://github.com/jantimon/html-webpack-plugin)
+
+```shell
+yarn add html-webpack-plugin -D
+```
+
+```javascript
+const HtmlPlugin = require('html-webpack-plugin');
+
+module.exports = {
+  // ...
+  plugins: [
+    new HtmlPlugin({
+      template: './src/index.html' // 传递一个指定的模板html文件
+    })
+  ]
+}
+```
+
+html-webpack-plugin会创建一个HTML文件，其中会引用构建出来的js文件
+
+[examples](https://github.com/jantimon/html-webpack-plugin/tree/main/examples)
+
+#### 2. 构建CSS
+
+* css-loader 负责解析CSS代码，主要是为了处理CSS中的依赖，例如`@import`和`url()`等引用外部文件的声明；
+* style-loader 将css-loader解析的结果转变为JS代码，运行时动态插入`style`标签来让css代码生效
+* MiniCSSExtractPlugin.loader可以单独把css文件分离出来
+
+#### 3. 使用CSS预处理器
+
+使用less，可以通过添加对应的loader来支持
+
+```shell
+yarn add less less-loader -D
+```
+
+```javascript
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader',
+          'less-loader'
+        ]
+      }
+    ]
+  }
+}
+```
+
+#### 4. 处理图片文件
+
+```javascript
+module.exports = {
+  module: {
+    rules: [
+      {
+        test: /\.(png|jpg|gif)$/i,
+        /*use: [ // webpack 5使用这个打包会生成两个图片文件，css中引用的是其中无法打开的文件
+          {
+            type: 'file-loader',
+            options: {}
+          }
+        ]*/,
+        type: 'asset', // 'asset/resource', // 默认都打包成独立的图片资源
+        parser: {
+          dataUrlCondition: { // 大于4kb的打包成独立图片，否则转为base64格式插入css文件
+            maxSize: 4 * 1024 // 4kb
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+[Asset Modules](https://webpack.js.org/guides/asset-modules/#resource-assets)
+
+#### 5. 使用Babel处理js文件
+
+使我们可以使用ES新特性的JS编译工具
+
+具体可以参考Babel官方文档[.babelrc](https://babeljs.io/docs/en/config-files/)
