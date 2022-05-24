@@ -1,3 +1,4 @@
 .container {
     transform: rotate(45deg);
+    transition: 1s;
 }

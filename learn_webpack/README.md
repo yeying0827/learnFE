@@ -280,8 +280,6 @@ module.exports = {
 }
 ```
 
-
-
 #### 5. mode
 
 用于方便快捷地指定一些常用的默认优化配置，值为：development、production和none。
@@ -354,8 +352,8 @@ html-webpack-plugin会创建一个HTML文件，其中会引用构建出来的js�
 
 #### 2. 构建CSS
 
-* css-loader 负责解析CSS代码，主要是为了处理CSS中的依赖，例如`@import`和`url()`等引用外部文件的声明；
-* style-loader 将css-loader解析的结果转变为JS代码，运行时动态插入`style`标签来让css代码生效
+* css-loader 负责解析CSS代码，并处理CSS中的依赖，例如`@import`和`url()`等引用外部文件的声明；
+* style-loader 将css-loader解析的结果转变为字符串，运行时动态插入`style`标签来让css代码生效
 * MiniCSSExtractPlugin.loader可以单独把css文件分离出来
 
 #### 3. 使用CSS预处理器
@@ -416,3 +414,622 @@ module.exports = {
 使我们可以使用ES新特性的JS编译工具
 
 具体可以参考Babel官方文档[.babelrc](https://babeljs.io/docs/en/config-files/)
+
+
+
+### 配置entry
+
+构建入口
+
+#### 1. 单一入口
+
+```javascript
+module.exports = {
+  entry: './src/index.js',
+ 
+  // 两者等价 
+  entry: {
+    main: './src/index.js'
+  }
+};
+```
+
+#### 2. 多个js作为入口
+
+```javascript
+// 多个入口生成不同的文件
+module.exports = {
+  entry: {
+    // 按需取名，通常是业务名称
+    foo: './src/foo.js',
+    bar: './src/bar.js'
+  }
+}
+```
+
+#### 3. 多个文件作为一个入口打包到一起
+
+```javascript
+module.exports = {
+  entry: {
+    main: [
+      './src/foo.js',
+      './src/bar.js'
+    ]
+  }
+}
+```
+
+#### 4. 配置动态的入口
+
+🌰：支持在「src/pages」下添加多个页面入口
+
+```javascript
+const path = require('path');
+const fs = reqiure('fs');
+
+// src/pages目录为页面入口的根目录
+const pagesRoot = path.resolve(__dirname, './src/pages');
+// fs读取pages下的所有文件夹来作为入口，使用entries对象记录下来
+const entries = fs.readdirSync(pagesRoot).reduce((entries, page) => {
+  // 文件夹名称作为入口名称，值为对应的路径，可以省略`index.js`，webpack默认会寻找目录下的index.js
+  entries[page] = path.resolve(pagesRoot, page);
+  return entries;
+}, {});
+
+module.exports = {
+  entry: entries // 与上述`多个js作为入口`效果相同
+}
+```
+
+打包后依旧是在一个html文件引用这多个js文件
+
+
+
+### module
+
+管理模块和模块之间的关系
+
+#### 1. 路径解析
+
+当我们写一个`import`语句来引用一个模块时，webpack是如何获取到对应模块的文件路径的？
+
+[enhanced-resolve](https://github.com/webpack/enhanced-resolve/)：处理依赖模块路径的解析
+
+Nodejs模块路径解析机制：[深入 Node.js 的模块机制](https://www.infoq.cn/article/nodejs-module-mechanism/)
+
+基本的模块解析规则：
+
+* 解析相对路径
+
+  1. 查找相对当前模块的路径下是否有对应文件或文件夹
+  2. 有文件：则直接加载
+  3. 有文件夹：则继续查找文件夹下的package.json文件
+  4. 有package.json文件：则按照文件中`main`字段对应的值（文件名）来查找文件
+  5. 无package.json文件或者无`main`字段：则查找`index.js`文件
+
+* 解析模块名
+
+  查找当前文件目录、父级目录及以上目录下的`node_modules`文件夹，看是否有对应名称的模块
+
+* 解析绝对路径（不建议使用）
+
+  直接查找对应路径的文件
+
+> 在webpack配置中，和模块路径解析相关的配置都在`resolve`字段下
+
+#### 2. resolve配置
+
+1. `resolve.alias`
+
+   配置某个模块的别名：经常编写相对路径很麻烦
+
+   ```javascript
+   module.exports = {
+     resolve: {
+       alias: {
+         // 模糊匹配，只要模块路径中携带了`utils`就可以被替换掉
+         // utils: path.resolve(__dirname, 'src/utils') // 获取绝对路径
+        	// 精确匹配
+         utils$: path.resolve(__dirname, 'src/utils')
+       }
+     }
+   }
+   ```
+
+   [Resolve Alias](https://webpack.js.org/configuration/resolve/#resolvealias)
+
+2. `resolve.extensions`
+
+   webpack自行补全文件后缀
+
+   webpack会尝试给依赖的路径添加上`extensions`字段所配置的后缀，然后进行依赖路径查找
+
+3.  `resolve.modules`
+
+   对于直接声明依赖名的模块，如`react`，webpack会类似Node.js一样进行路径搜索，搜索`node_modules`目录，这个目录就是使用`resolve.modules`字段进行配置的，默认就是：
+
+   ```javascript
+   modules.exports = {
+     resolve: {
+       modules: ['node_modules'],
+     }
+   }
+   ```
+
+   通常情况下不会调整这个配置。
+
+   可以简化模块的查找，提升构建速度。
+
+4. `resolve.mainFields`
+
+   路径解析规则中，解析相对路径的第4步，提到有package.json文件则按照文件中`main`字段的值（文件名）来查找文件。
+
+   实际，webpack的`resolve.mainFields`配置可以进行调整。当引用的是一个模块或者一个目录时，会使用package.json文件中的哪一个字段指定的文件，默认的配置是：
+
+   ```json
+   {
+     resolve: {
+       // 配置 target === 'web' 或者 target === 'webworker' 时的默认值
+       mainFields: ['browser', 'module', 'main'],
+       
+       // target的值为其他时的默认值
+       mainFields: ['module', 'main']
+     }
+   }
+   ```
+
+   通常情况下，模块的package都不会声明`browser`或者`module`字段，所以便是使用`main`
+
+5. `resolve.mainFiles`
+
+   路径解析规则中，解析相对路径的第5步，提到无package.json文件或者无`main`字段：则查找`index.js`文件。
+
+   实际，这个也是可以配置的，使用`resolve.mainFiles`字段，默认配置是：
+
+   ```json
+   {
+     resolve: {
+       mainFiles: ['index'] // 也可以添加其他默认使用的文件名
+     }
+   }
+   ```
+
+   通常情况下，无需修改，index.js基本是约定俗成
+
+6. `resolve.resolveLoader`
+
+   用于配置解析loader时的resolve配置，原本resolve的配置项在这个字段下基本都有。默认的配置是：
+
+   ```json
+   {
+     resolve: {
+       resolveLoader: {
+         extensions: ['.js', '.json'],
+         mainFields: ['loader', 'main']
+       }
+     }
+   }
+   ```
+
+   一般遵从标准的使用方式，把loader安装在项目根路径下的node_modules下。
+
+#### 3. 小结
+
+webpack配置文件中和`resolve`相关的选项都会传递给enhanced-resolve使用，来解析代码模块的路径
+
+
+
+### loader
+
+用于处理不同的文件类型（模块），类似预处理器。Webpack本身只认识JavaScript，对于其他类型的资源必须预先定义一个或多个loader对其进行转译，输出为Webpack能够接收的形式再继续进行，因此loader做的实际上是一个预处理的工作。
+
+> loader基本上都是第三方库，使用时需要安装，有一些loader还需要安装额外的类库，例如less-loder需要less，babel-loader需要babel等。
+
+#### 1. 匹配规则
+
+由于loader处理的是代码模块的内容转换，所以loader的配置是放在`module`字段下的，当配置loader时，就是在`module.rules`中添加新的配置项，在该字段中，每一项被视为一条匹配使用哪些loader的规则。
+
+匹配规则的两个最关键因素：一个是匹配条件（test），一个是匹配规则后的引用（use）。
+
+**匹配条件**通常使用资源文件的绝对路径来进行匹配，在官方文档中称为`resource`，除此之外还有较少使用的`issuer`，指的是声明依赖资源的源文件的绝对路径。
+
+🌰：在/path/to/app.js中声明引入`import './src/style.scss'`，`resource`是「/path/to/src/style.scss」，`issuer`是「/path/to/app.js」，规则条件会对这两个值来尝试匹配。
+
+被加载模块是resource，而加载者是issuer。resource与issuer可用于更加精确地确定模块规则的作用范围
+
+`webpack.config.js`中rules写的`test`和`include`都用于匹配`resource`路径，是`resource.test`和`resource.include`的简写。
+
+#### 2. 规则条件配置
+
+webpack的规则提供了多种配置形式：
+
+* `test`：匹配特定条件
+* `include`：匹配特定路径
+* `exclude`：排除特定路径
+* `and: []`：必须匹配数组中所有条件
+* `or: []`：匹配数组中任意一个条件
+* `not: []`：排除匹配数组中所有条件
+
+上述条件的值可以是：
+
+* 字符串：是字符串的话，需要提供绝对路径
+* 正则表达式：调用正则的`test`方法来判断匹配
+* 函数：`(path)=>boolean`，返回`true`表示匹配
+* 数组：至少包含一个条件的数组  （通常需要高度自定义时才会使用）
+* 对象：匹配所有属性值的条件
+
+`test/include/exclude`是`resource.(test/include/exclude)`的简写（webpack 5中只支持简写），`and/or/not`这些需要放到`resource`中进行配置。
+
+如果exclude 和include同时存在，则exclude权限比较高
+
+#### 3. module type
+
+模块类型。不同的模块类型类似于配置了不同的loader，webpack会有针对性地进行处理。可能的值：
+
+* `javascript/auto`：webpack 3默认的类型，支持现有的各种JS代码模块类型——CommonJS、AMD、ESM
+* `javascript/esm`：ECMAScript modules，其他模块系统如CommonJS或AMD等不支持，是`.mjs`文件的默认类型
+* `javascript/dynamic`：CommonJS和AMD，排除ESM
+* `javascript/json`：JSON数据格式，`require`或者`import`都可以引入，是`.json`文件的默认类型
+* `webassembly/experimental`：WebAssembly modules，当前还处于试验阶段，是`.wasm`文件的默认类型。webassembly/sync、webassembly/async
+* asset、asset/resource，asset/inline，aseet/source：资源文件
+
+如果不希望使用默认的类型的话，在确定好匹配规则条件时，可以使用`type`字段来指定模块类型。可以帮助规范整个项目的模块系统。
+
+#### 4. 使用loader配置（use）
+
+`use`字段可以是一个数组，也可以是一个字符串或者表示loader的对象。
+
+当使用表示loader的对象，对象通常包含两个属性：loader和options，`options`可以给对应的loader传递一些配置项
+
+#### 5. loader应用顺序
+
+一个模块文件可以经过多个loader的转换处理，执行顺序是从最后配置的loader开始，一步步往前。
+
+如果多个rule匹配上了同一个模块文件，loader的应用顺序可以使用`enforce`字段来配置当前rule的loader类型，没配置的话是普通类型，可以配置`pre`或`post`，分别对应前值类型或后置类型的loader。
+
+还有一种行内loader，即在应用代码中引用依赖时直接声明使用的loader，如`const json = require('json-loader!./file.json')`这种。不建议在应用开发中使用这种loader。
+
+所有的loader按照 **前置->行内->普通->后置** 的顺序执行。
+
+通常建议把要应用的同一类型loader都写在同一个匹配规则中，更好维护和控制。
+
+#### 6. 使用`noParse`
+
+`module.noParse`字段，可以用于配置哪些模块文件的内容不需要进行解析。对于一些**不需要解析依赖（即无依赖）**的第三方大型类库等，可以通过这个字段来配置，以提高整体的构建速度。
+
+> 使用`noParse`进行忽略的模块文件中不能使用`import`、`require`、`define`等导入机制。
+
+```javascript
+module.exports = {
+  // ...
+  module: {
+    rules: [
+    	// ...
+    ],
+    noParse: /jquery|lodash/, // 正则表达式
+    // 或者使用function
+    noParse(content) {
+      return /jquery|lodash/.test(content)
+    }
+  }
+};
+```
+
+#### 使用
+
+1. 添加[`postcss-loader`](https://webpack.js.org/loaders/postcss-loader/)，并添加[`autoprefixer`](https://github.com/postcss/autoprefixer)配置，需要在package.json中配置browserslist配置，或添加.browserslistrc文件
+
+   ```shell
+   yarn add postcss-loader -D
+   yarn add autoprefixer -D
+   ```
+
+   ```javascript
+   // webpack.config.js
+   module.exports = {
+     module: {
+       rules: [
+         {
+           test: /\.css$/i,
+           use: [
+             MiniCssExtractPlugin.loader,
+             'css-loader',
+             'postcss-loader'
+           ]
+         }
+       ]
+     }
+   }
+   
+   // postcss.config.js
+   module.exports = {
+     plugins: [
+       require('autoprefixer')
+     ]
+   }
+   ```
+
+   ```json
+   {
+     browserslist: [
+       ">0.2%",
+       "not dead",
+       "not op_mini all"
+     ],
+   }
+   ```
+
+2. 尝试使用[`htmlloader`](https://webpack.js.org/loaders/html-loader/)，可以在js中使用例如`import file from './file.html'`。
+
+   ```shell
+   yarn add html-loader -D
+   ```
+
+   ```javascript
+   module.exports = {
+     module: {
+       rules: [
+         {
+           test: /\.html$/,
+           use: ['html-loader']
+         }
+       ]
+     }
+   }
+
+
+
+### 使用plugin
+
+负责除了模块化打包外其他多样性的构建任务处理。
+
+mode对plugin配置的影响？
+
+#### 1. mode和plugin
+
+mode不同值会影响webpack构建配置，其中有一个就是会启用DefinePlugin来设置`process.env.NODE_ENV`的值，方便代码中判断构建环境。
+
+除此之外，development和production两个不同的mode之间还有其他plugin使用上的区别：
+
+* development
+
+  会启用NamedChunksPlugin和NamedModulesPlugin，主要作用是在HotModuleReplacement（热模块替换）开启时，模块变化时的提示内容显示chunk或者module名称（控制台），而不是ID。
+
+* production
+
+  会启用多个plugins：
+
+  * FlagDependencyUsagePlugin：在构建时给使用的依赖添加标识，用于减少构建生成的代码量。
+  * FlagIncludedChunksPlugin：在构建时给chunk中所包含的所有chunk添加id，用于减少不必要的chunk。
+  * ModuleConcatenationPlugin：构建时添加作用域提升的处理，用于减少构建生成的代码量，详细参考：[module-concatenation-plugin](https://webpack.js.org/plugins/module-concatenation-plugin/)
+  * NoEmitOnErrorsPlugin：编译时出错的代码不生成，避免构建出来的代码异常。
+  * OccurenceOrderPlugin：按使用的次数来对模块进行排序，可以进一步减少构建代码量。
+  * SideEffectsFlagPlugin：在构建时给带有Side Effects的代码模块添加标识，用于优化代码量时使用。
+  * TerserPlugin：压缩JS代码。参考[Terser](https://terser.org/)
+
+  production mode下启用的大量plugin都是为了优化生成代码而使用的，和配置的`optimization`的内容息息相关，详细可以查阅：[optimization](https://webpack.js.org/configuration/optimization/)
+
+#### 2. 一些plugin
+
+##### Defineplugin
+
+webpack内置的插件，可以使用webpack.DefinePlugin直接获取。
+
+在不同的mode中，会使用DefinePlugin来设置运行时的`process.env.NODE_ENV`常量。
+
+DefinePlugin用于创建一些在编译时可以配置值，在运行时可以使用的常量。🌰：
+
+```javascript
+module.exports = {
+  // ...
+  plugins: [
+    new webpack.DefinePlugin({
+      PRODUCTION: JSON.stringify(true), // const PRODUCTION = true
+      VERSION: JSON.stringify('5fa3b9'), // const VERSION = '5fa3b9'
+      BROWSER_SUPPORTS_HTML5: true, // const BROWSER_SUPPORTS_HTML5 = 'true'
+      TWO: '1+1', // const TWO = 1 + 1
+      CONSTANTS: {
+        APP_VERSION: JSON.stringify('1.1.2') // const CONSTANTS = { APP_VERSION: '1.1.2' }
+      }
+    }),
+  ]
+}
+
+// index.js
+console.log("Running App version " + VERSION); // 5fa3b9
+console.log('PRODUCTION: ', PRODUCTION); // true
+console.log('TWO: ', TWO); // 2
+console.log('BROWSER_SUPPORTS_HTML5: ', BROWSER_SUPPORTS_HTML5); // true
+console.log('CONSTANTS: ', CONSTANTS); // { APP_VERSION: "1.2.2" }
+```
+
+有了以上配置，就可以在应用代码文件中，访问配置好的常量了，如：
+
+```javascript
+console.log("Running App version " + VERSION);
+
+if(!!BROWSER_SUPPORTS_HTML5) require('html5shiv');
+```
+
+配置规则：
+
+* 如果值是字符串，那么整个字符串会被当成代码片段来执行，其结果作为最终变量的值
+* 如果是对象字面量，那么该对象的所有key会以同样的方式去定义
+* 如果既不是字符串，也不是对象字面量，那么该值会被转为一个字符串，如`true`，最后的结果是`'true'`(???true打印出来为布尔值的true，不是字符串的`'true'`)
+
+关于DefinePlugin使用得最多的方式是定义环境常量，如`production=true`或者`__DEV__=true`等。部分类库在开发环境时依赖这样的环境变量来给予开发者更多的开发调试反馈。
+
+##### TerserPlugin
+
+webpack mode为production时会启用TerserPlugin来压缩JS代码。使用方式：
+
+```shell
+yarn add terser-webpack-plugin -D
+```
+
+```javascript
+module.exports = {
+  // ...
+  // TerserPlugin的使用比较特别，需要配置在optimization字段中，属于构建代码优化的一部分
+  optimization: {
+    minimize: true, // 启用代码压缩
+    minimizer: [ // 配置代码压缩工具
+      new TerserPlugin({
+        test: /\.js(\?.*)?$/i, // 只处理.js文件
+        terserOptions: {
+          compress: true
+        }
+      })
+    ],
+  }
+}
+```
+
+[terser-webpack-plugin](https://github.com/webpack-contrib/terser-webpack-plugin)
+
+> 以前的版本webpack是使用UglifyWebpackPlugin来压缩JS代码，后边更换为TerserPlugin，可以更好地处理新的JS代码语法。
+
+##### IgnorePlugin
+
+也是webpack内置的插件，可以使用`webpack.IngorePlugin`来获取。
+
+用于忽略某些特定的模块，让webpack不把这些指定的模块打包进去。例如使用moment.js，直接引用后，会有大量的i18n的代码，导致最后打包出来的文件比较大，而实际场景并不需要这些i18n的代码，就可以使用IgnorePlugin来忽略掉这些代码文件：
+
+```javascript
+module.exports = {
+  // ...
+  plugins: [
+    new webpack.IgnorePlugin({resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/})
+  ]
+}
+```
+
+IgnorePlugin配置的参数有两个，第一个是匹配引入模块路径的正则表达式，第二个是匹配模块的对应上下文，即所在目录名。
+
+##### webpack-bundle-analyzer
+
+这个plugin可以用于分析webpack构建打包的内容，用于查看各个模块的依赖关系和各个模块的代码内容多少，便于开发者做性能优化。
+
+配置简单，仅仅引入plugin即可，在构建时可以在浏览器中查看分析结果
+
+```javascript
+const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+
+module.exports = {
+  // ...
+  plugins: [
+    new BundleAnalyzerPlugin()
+  ]
+}
+```
+
+使用这个可配置IgnorePlugin来过滤掉部分大而无用的第三方模块。
+
+#### 3. awesome-webpack
+
+[awesome webpack](https://webpack.js.org/awesome-webpack/)
+
+#### 4. 其他一些plugin
+
+##### ProgressPlugin
+
+可以在构建时获取构建进度。
+
+```shell
+yarn add progress-webpack-plugin -D
+```
+
+```javascript
+const ProgressPlugin = require('progress-webpack-plugin');
+
+module.exports = {
+  // ...
+  plugins: [
+    new ProgressPlugin((percentage, message, ...args) => {
+      console.log(percentage, message, ...args);
+    })
+  ]
+}
+```
+
+[文档](https://webpack.js.org/plugins/progress-plugin/)
+
+##### DllPlugin
+
+用于将一部分稳定的代码构建给分离出来，之后构建时重复使用那一部分内容，来减少构建时的工作量，提升构建效率
+
+```javascript
+// webpack.dll.config.js
+const path = require('path');
+const webpack = require('webpack');
+
+module.exports = {
+  entry: {
+    moment: ['moment']
+  },
+  output: {
+    filename: '[name].dll.js',
+    path: path.resolve(__dirname, 'dist/public'),
+    library: '[name]_[fullhash]'
+  },
+  plugins: [
+    new webpack.DllPlugin({
+      context: __dirname,
+      name: '[name]_[fullhash]', // 需要和output.library保持一致
+      path: path.join(__dirname, 'dist/public', '[name].manifest.json')
+    })
+  ]
+}
+```
+
+```shell
+## 运行命令，会在dist/public目录下生成moment.dll.js和moment.manifest.json两个文件
+npx webpack --config webpack.dll.config
+```
+
+```javascript
+// webpack.config.js 中使用动态库文件
+module.exports = {
+  // ...
+  plugins: [
+    new HtmlPlugin({
+      inject: true,
+      template: './index.html',
+      title: 'webpack学习'
+    }),
+    // 定义常量，在html中替换
+    new webpack.DefinePlugin({
+      // ...
+      DLL_PATH: JSON.stringify('/public/moment.dll.js')
+    }),
+    // 通过引用dll的manifest文件，来把依赖的名称映射到模块的id上，之后再在需要的时候通过内置的webpack_require函数来require他们
+    new webpack.DllReferencePlugin({
+      context: __dirname,
+      manifest: require('./dist/public/moment.manifest.json'),
+    })
+  ]
+}
+```
+
+```html
+<!-- 在index.html中引用dll文件 -->
+<head>
+  <title>
+    <%= htmlWebpackPlugin.options.title %>
+  </title>
+</head>
+<body>
+  <div>
+    Test....
+  </div>
+  <script src="<%= DLL_PATH %>"></script>
+  <script src="/public/moment.dll.js"></script><!-- 两种都可以 -->
+</body>
+```
+
+> 注意！！需要把对html处理的loader把index.html文件排除在外，否则会去解析index.html中引用的js，抛出找不到模块的错误，也无法解析webpack配置的常量
+
+#### 5. 思考mode对plugin的影响
+
+plugin主要用于提高开发构建效率，处于不同mode有不同的需求，在开发调试中，侧重于实时更新，看到最新的代码效果，所以就需要热更新的效果，就不必手动刷新页面，只要修改内容就能得到反馈；在构建部署生产阶段，侧重于提升用户使用体验，比如更快的打开页面，就需要配置更多提升性能相关的插件，如引入压缩的plugin，减少请求资源的体积，达到提升性能的效果，再比如给模块添加标识，在重复使用时不重复引入构建，减少构建生成的代码，还可以利用到缓存。
