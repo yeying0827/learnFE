@@ -1032,4 +1032,142 @@ module.exports = {
 
 #### 5. 思考mode对plugin的影响
 
-plugin主要用于提高开发构建效率，处于不同mode有不同的需求，在开发调试中，侧重于实时更新，看到最新的代码效果，所以就需要热更新的效果，就不必手动刷新页面，只要修改内容就能得到反馈；在构建部署生产阶段，侧重于提升用户使用体验，比如更快的打开页面，就需要配置更多提升性能相关的插件，如引入压缩的plugin，减少请求资源的体积，达到提升性能的效果，再比如给模块添加标识，在重复使用时不重复引入构建，减少构建生成的代码，还可以利用到缓存。
+plugin主要用于提高开发构建效率，处于不同mode有不同的需求，在开发调试中，侧重于实时更新，看到最新的代码效果，所以就需要热替换的效果，就不必手动刷新页面，只要修改内容就能得到反馈；在构建部署生产阶段，侧重于提升前端资源的加载性能，比如更快的打开页面，就需要配置更多提升性能相关的插件，如引入压缩的plugin，减少资源的体积，达到提升性能的效果，再比如给模块添加标识，在重复使用时不重复引入构建，减少构建生成的代码，还可以利用到缓存。
+
+
+
+### 优化图片&HTML&CSS
+
+#### 1. 图片资源压缩
+
+* 可以使用[image-webpack-loader](https://github.com/tcoopman/image-webpack-loader)来压缩图片文件
+
+```shell
+## 使用cnpm安装loader
+npm install cnpm -g --registry=https://registry.npm.taobao.org
+## 使用yarn或npm可能会导致无法完整下载依赖，导致无法打包
+cnpm install --save-dev image-webpack-loader
+```
+
+```javascript
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.(png|jpg|gif)$/i,
+        type: 'asset',
+        parser: {
+          dataUrlCondition: {
+            maxSize: 4 * 1024 // 4kb，超过限制会生成独立文件
+          }
+        },
+        use: [
+          {
+            loader: 'image-webpack-loader',
+            options: {
+              mozjpeg: { // 压缩jpeg的配置
+                progressive: true,
+                quality: 65
+              },
+              optipng: { // 使用imagemin-optipng压缩png，enable false为关闭
+                enabled: false
+              },
+              pngquant: { // 使用imagemin-pngquant压缩png
+                quality: [0.65, 0.9],
+                speed: 4
+              },
+              gifsicle: { // 压缩gif的配置
+                interlaced: false,
+              },
+              webp: { // 开启webp，会把jpg和png图片压缩为webp格式
+                quality: 75
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+image-webpack-loader的压缩是使用[imagemin](https://github.com/imagemin)提供的一系列图片压缩类库来处理的
+
+* 使用DataURL：减少图片请求，优化大量小图片加载效率
+
+过去：使用CSS Sprites，将多个小图片合并成一张，然后利用CSS background position的方式来引用对应的图片资源，这种方式受到CSS background的限制，并且position的值都由工具生成，有时不便于维护。[webpack生成CSS sprites](https://juejin.cn/post/6844903501890322440)
+
+更为方便：将小图片转换为base64编码，将图片变成编码和代码文件打包到一起，可以起到减少小图片请求数量的效果
+
+webpack4可以使用[url-loader](https://github.com/webpack-contrib/url-loader)，webpack5中可以直接配置`parser.dataUrlCondition.maxSize`来指定大于多少体积转为base64编码
+
+#### 2. 代码压缩
+
+* HTML
+
+  使用html-webpack-plugin插件，使用`minify`字段配置就可以使用HTML压缩（使用[html-minifier](https://github.com/kangax/html-minifier#options-quick-reference)来实现HTML代码压缩）
+
+  不配置minify，默认去除无用空格和换行、并移除注释
+
+  ```javascript
+  const HtmlWebpackPlugin = require('html-webpack-plugin');
+  
+  module.exports = {
+    // ...
+    plugins: [
+      new HtmlWebpackPlugin({
+        template: './index.html',
+        title: 'webpack学习',
+        minify: {
+          minifyCSS: true, // 压缩HTML中出现的CSS代码，默认false
+          minifyJS: true, // 压缩HTML中出现的JS代码，默认false
+          collapseInlineTagWhitespace: true,
+          collapseWhitespace: true, // 和上一个配置配合，移除无用的空格和换行，默认false
+          removeComments: true, // 移除html注释，默认false
+        }
+      })
+    ]
+  }
+  ```
+
+* CSS
+
+  在postcss-loader的基础上使用[cssnano](https://cssnano.co/)，移除无用的空格和换行
+
+  ```shell
+  npm install --save-dev cssnano
+  ## 安装cssnano后，有影响到image-webpack-loader，需要重新安装下image-webpack-loader
+  cnpm install --save-dev  image-webpack-loader
+  ```
+
+  ```javascript
+  // webpack.config.js
+  module.exports = {
+    // ...
+    module: {
+      rules: [
+        {
+          test: /\.less$/,
+          loader: [
+            MiniCssExtractPlugin.loader,
+            'css-loader',
+            'postcss-loader'
+            'less-loader',
+          ]
+        }
+      ]
+    }
+  }
+  // postcss.config.js
+  module.exports = {
+    // ...
+    plugins: [
+      require('autofixer'),
+      require('cssnano')()
+    ]
+  }
+  ```
+
+  
+

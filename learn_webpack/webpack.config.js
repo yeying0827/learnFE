@@ -3,7 +3,7 @@ const fs = require('fs');
 const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const HtmlPlugin = require('html-webpack-plugin');
+const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const ProgressPlugin = require('progress-webpack-plugin');
@@ -71,6 +71,7 @@ module.exports = {
                 use: [
                     MiniCssExtractPlugin.loader,
                     'css-loader',
+                    'postcss-loader',
                     'less-loader'
                 ]
             },
@@ -84,6 +85,7 @@ module.exports = {
             {
                 test: /\.jsx?/,
                 include: path.resolve(__dirname, 'src'), // 指定哪些路径下的文件需要经过loader处理
+                exclude: /node_modules/,
                 use: {
                     loader: 'babel-loader', // 使用babel-loader可以使用babel将ES6代码转译为浏览器可以执行的ES5代码
                     options: {
@@ -105,7 +107,31 @@ module.exports = {
                     dataUrlCondition: {
                         maxSize: 4 * 1024 // 4kb
                     }
-                }
+                },
+                use: [
+                    {
+                        loader: 'image-webpack-loader',
+                        options: {
+                            mozjpeg: { // 压缩jpeg的配置
+                                progressive: true,
+                                quality: 65
+                            },
+                            optipng: { // 使用imagemin-optipng压缩png，enable false为关闭
+                                enabled: false
+                            },
+                            pngquant: { // 使用imagemin-pngquant压缩png
+                                quality: [0.65, 0.9],
+                                speed: 4
+                            },
+                            gifsicle: { // 压缩gif的配置
+                                interlaced: false,
+                            },
+                            webp: { // 开启webp，会把jpg和png图片压缩为webp格式
+                                quality: 75
+                            }
+                        }
+                    }
+                ]
             },
             {
                 test: /\.html$/i,
@@ -124,10 +150,17 @@ module.exports = {
         new MiniCssExtractPlugin({
             filename: '[name]-[hash].css' // 这里也可以使用hash，默认是main.css
         }), // 将css单独抽离的plugin
-        new HtmlPlugin({
+        new HtmlWebpackPlugin({
             // inject: true,
             template: './index.html',
-            title: 'webpack学习'
+            title: 'webpack学习',
+            minify: { // 压缩HTML的配置
+                minifyCSS: true, // 压缩HTML中出现的CSS代码，默认false
+                minifyJS: true, // 压缩HTML中出现的JS代码，默认false
+                collapseInlineTagWhitespace: true,
+                collapseWhitespace: true, // 和上一个配置配合，移除无用的空格和换行，默认false
+                removeComments: true, // 移除html注释，默认false
+            }
         }),
         new webpack.DefinePlugin({
             PRODUCTION: JSON.stringify(true),
