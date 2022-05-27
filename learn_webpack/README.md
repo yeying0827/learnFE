@@ -1169,5 +1169,79 @@ webpack4可以使用[url-loader](https://github.com/webpack-contrib/url-loader)�
   }
   ```
 
-  
+
+
+### 优化JS代码
+
+尽可能减少构建出来的JS代码体积
+
+#### 1. Tree shaking（ESM）
+
+依赖于ES2015模块系统中的[静态结构特性](https://exploringjs.com/es6/ch_modules.html#static-module-structure),可以移除JavaScript上下文中未引用代码，删除用不着的代码，能够有效减少JS代码文件的大小。
+
+在production的mode下，webpack会移除未引用的这部分代码，来减少构建出来的代码整体体积。
+
+在development mode，需要在配置文件中新增：
+
+```javascript
+module.exports = {
+  mode: 'development',
+  //...
+  optimization: {
+    usedExports: true, // 模块内未使用的部分不进行导出
+  }
+}
+```
+
+再打包可以看到，有注释说明square未使用，对外暴露的方法只有`cube`。这里已经给模块中是否被使用到的方法打了标识，当使用TerserPlugin后，Terser会移除那些没有对外暴露且没有额外副作用的方法，来减小构建出来的代码体积。
+
+#### 2. sideEffects（主要用于开发npm包）
+
+🌰：
+
+`lodash-es`这个模块的「package.json」文件中有`sideEffects: false`的声明，最终webpack的打包结果不会把lodash-es所有的代码内容打包进来，只会打包用到的模块相关的代码，这就是sideEffects的作用。
+
+如果使用`lodash`模块，则会全部打包。
+
+当某个模块的`package.json`文件中有了这个声明之后，webpack会认为这个模块没有任何副作用，只是单纯用来对外暴露模块使用，一旦开启了`optimization.sideEffects`的话，那么在打包的时候就会做一些额外的处理。
+
+> 对比：
+>
+> `usedExports`依赖Terser来检测未使用的部分代码是否有副作用，而sideEffects是通过「package.json」等相关的标识来确定，由应用开发者自己来进行控制，并且移除的是无用的模块或者代码文件，相对效率更高一些。
+
+「package.json」下的`sideEffects`可以是匹配文件路径的数组，表示这些模块文件是有副作用的，不能被移除：
+
+```json
+{
+  sideEffects: [
+    "*.css"
+  ]
+}
+```
+
+CSS代码文件是最典型的有副作用的模块，主要import了就不能移除，因为你需要它的样式代码，所以使用`sideEffects`来优化项目代码时切记，要声明CSS文件是有副作用的。
+
+#### 3. concatenateModules
+
+当用development构建生成的代码，每个模块都会使用`(function(module, __webpack_exports__, __webpack_require__){})`的函数包起来，我们可以使用`optimization.concatenateModules: true`的配置来移除这一部分多余的代码。
+
+webpack会把可以优化的模块整合到一起，来减少上述那样的闭包函数的代码。
+
+注释中的`CONCATENATED MODULE`的模块便是webpack整合到一起的模块，而模块间依赖的方法则是以局部变量的方式直接调用了，就可以减少大量的闭包函数代码，从而减少构建出来的代码体积，如果加上Terser的压缩，效果就更加显著了。
+
+#### 4. 总结
+
+Tree shaking，sideEffects和concatenateModules这些优化配置选项，在production mode中都是开箱即用，无须用户设置便会默认开启。
+
+
+
+### 拆分代码文件
+
+将CSS代码单独拆分的原因：
+
+* 所有静态资源都打包成一个JS文件，如果只是单独修改了样式，也要重新加载整个应用的JS文件，相当不划算，浪费带宽、时间
+* 有多个页面如果共用一部分样式，但是每个页面都单独打包一个JS文件，那么每次访问都会重复加载原本可以共享的那些CSS代码
+* 如果单独拆分出来，不仅可以减少一次请求的体积，使请求返回更快，也可以利用到缓存，避免重复的加载
+
+JS代码过大时，也可以用代码文件拆分的方法来进行优化。分离公共部分
 

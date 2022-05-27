@@ -59,7 +59,10 @@ module.exports = {
             terserOptions: {
                 compress: true
             }
-        })] // 配置代码压缩工具
+        })], // 配置代码压缩工具
+        usedExports: true, // 模块内未使用的部分不进行导出
+        // concatenateModules: true,
+        // sideEffects: true
     },
 
     // 配置如何处理不同类型的模块
