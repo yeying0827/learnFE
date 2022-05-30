@@ -1245,3 +1245,138 @@ Tree shaking，sideEffects和concatenateModules这些优化配置选项，在pro
 
 JS代码过大时，也可以用代码文件拆分的方法来进行优化。分离公共部分
 
+#### 1. splitChunks配置项
+
+`optimization.splitChunks`的多个配置项：
+
+* chunks：表示从哪些模块中抽取代码，可以设置`all/async/initial`三个值其中一个，分别表示`所有模块/异步加载的模块/同步加载的模块`，或者也可以设置一个function，用于过滤掉不需要抽取代码的模块，如：
+
+  ```javascript
+  modules.exports = {
+    // ...
+    optimization: {
+      splitChunks: {
+        chunks: 'all', // 从所有模块中抽取代码
+        chunks(chunk) {
+          // 排除`my-excluded-chunk`
+          return chunk.name !== 'my-excluded-chunk';
+        }
+      }
+    }
+  }
+  ```
+
+* minSize：表示生成的公共代码文件最小的体积，而maxSize则是告诉webpack尽可能把大于这个设置值的代码量拆分成更小的文件来生成，默认为0，即不限制。
+
+  代码量在[minSize, maxSize]区间内的模块生成公共代码文件
+
+* minChunks：表示一个模块被多少个模块共享引用时要被抽离出来，默认为1，如果设置为2，表示起码有两个模块引用了一个模块，这个被引用的模块才会被抽离出来
+
+* name：是抽离出来的文件名称，默认为true，即自动生成
+
+* automaticNameDelimiter：抽取模块后生成的文件由多个模块的名称组成，这个选项用于配置多个名称组合时使用的连接符，默认是`~`
+
+* cacheGroups：最关键的配置，表示抽离公共部分的配置，一个key-value的配置对应一个生成的代码文件（？）。🌰：
+
+  ```javascript
+  module.exports = {
+    // ...
+    optimization: {
+      chunks: 'all',
+      name: 'common',
+      cacheGroups: {
+        defaultVendors: { // id hint?
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10
+        },
+        default: {
+          minChunks: 2,
+          priority: -20,
+          reuseExistingChunk: true
+        }
+      },
+    }
+  }
+  ```
+
+  上述例子会抽离两个代码文件出来：defaultVendors和default，这两个的配置会继承splitChunks上的所有配置项，并且多了三个配置项：
+
+  * test：用于匹配要抽离的代码模块
+  * priority：权重配置，如果一个模块满足多个cacheGroup的匹配条件，那么就由权重来确定抽离到哪个cacheGroup
+  * reuseExistingChunk：设置为true表示如果一个模块已经被抽离出去了，那么就复用它，不会重新生成
+
+  更多配置项参考官方文档：[split chunks](https://webpack.js.org/plugins/split-chunks-plugin/)
+
+#### 2. 应用：拆分第三方类库
+
+拆分文件是为了更好地利用缓存，分离公共类库很大程度上是为了让多页面利用缓存，从而减少下载的代码量，同时，代码变更时可以利用缓存减少下载代码量的好处。
+
+建议将公共使用的第三方类库显式地配置为公共的部分，而不是webpack自己去判断处理。因为公共的第三方类库通常升级频率相对低一些，这样可以避免因业务chunk的频繁变更而导致缓存失效。
+
+显式配置共享类库🌰：
+
+```javascript
+module.exports = {
+  // ...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendor: { // vendor 是我们第三方类库的公共代码的名称
+          test: /react|angular|lodash/, // 直接使用test来做路径匹配
+          chunks: 'initial',
+          name: 'vendor',
+          enforce: true
+        }
+      }
+    }
+  }
+}
+
+// 或者
+module.exports = {
+  // ...
+  optimization: {
+    splitChunks: {
+      cacheGroups: {
+        vendor: {
+          chunks: 'initial',
+          test: path.resolve(__dirname, "node_modules"), // 路径在node_modules目录下的都作为公共部分
+          name: 'vendor', // 使用vendor入口作为公共部分
+          enforce: true
+        }
+      }
+    }
+  }
+}
+```
+
+可以针对项目情况，选择最合适的做法。
+
+#### 3. 按需加载
+
+当Web应用是单个页面，并且极其复杂的时候，会发现有一些代码并不是每一个用户都需要用到的。可以将这一部分代码抽离出去，仅当用户真正需要用到时才加载。
+
+在webpack的构建环境中，要按需加载代码模块很简单，遵循ES标准的动态加载语法[dynamic-import](https://github.com/tc39/proposal-dynamic-import)来编写代码即可，webpack会自动处理使用该语法编写的模块：
+
+```javascript
+// import作为一个方法使用，传入模块名即可，返回一个promise来获取模块暴露的对象
+// 注释webpackChunkName: "jquery" 可以用于指定chunk的名称，在输出文件时有用
+import(/* webpackChunkName: "jquery" */ 'jquery').then(($) => {
+  console.log($);
+})
+```
+
+由于动态加载代码模块的语法依赖于promise，对于低版本的浏览器，需要添加promise的[polyfill](https://github.com/stefanpenner/es6-promise)后才能使用。
+
+如上代码，webpack构建时会自动把jQuery模块分离出来，并且在代码内部实现动态加载jQuery的功能。动态加载代码时依赖于网络，其模块内容会异步返回，所以`import`方法是返回一个promise来获取动态加载的模块内容。
+
+`import`后面的注释`webpackChunkName: "jquery"`用于告知webpack所要动态加载模块的名称，这样就可以把分离出来的文件名称带上jQuery标识了。如果没有这个注释，那么分离出来的文件名称会以简单数字的方式标识，不便于识别。
+
+通常在大型的单页应用中，一般会把局部业务功能作为一个异步模块，在用户使用到时再动态加载进来，这样可以进一步减少大型应用初始化时需要加载的前端资源，来提升我们应用的用户体验。
+
+#### 4.  思考：拆分代码带来的性能和体验优化，可以通过什么指标来测试？
+
+* 可以使用lighthouse进行性能分析
+* 在chrome中查看network查看请求、响应的时间
+* 打包后使用webpack-bundle-analyzer查看代码分析
+* 直接查看打包后的包体积

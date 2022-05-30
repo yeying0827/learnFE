@@ -63,6 +63,21 @@ module.exports = {
         usedExports: true, // 模块内未使用的部分不进行导出
         // concatenateModules: true,
         // sideEffects: true
+        /*splitChunks: {
+            chunks: 'all',
+            name: 'common',
+            cacheGroups: {
+                defaultVendors: {
+                    test: /[\\/]node_modules[\\/]/,
+                    priority: -10
+                },
+                default: {
+                    minChunks: 2,
+                    priority: -20,
+                    reuseExistingChunk: true
+                }
+            },
+        }*/
     },
 
     // 配置如何处理不同类型的模块
@@ -175,15 +190,15 @@ module.exports = {
             },
             DLL_PATH: JSON.stringify('/public/moment.dll.js')
         }),
-        // new webpack.IgnorePlugin({resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/}), // 忽略掉i18n代码文件
+        new webpack.IgnorePlugin({resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/}), // 忽略掉i18n代码文件
         // new BundleAnalyzerPlugin(), // 构建完成后在浏览器中可以查看分析结果
         new ProgressPlugin((percentage, message, ...args) =>  {
             console.log(percentage, message, ...args);
         }),
-        new webpack.DllReferencePlugin({
+        /*new webpack.DllReferencePlugin({
             context: __dirname,
             // 描述 moment 动态链接库的文件内容
             manifest: require('./dist/public/moment.manifest.json'),
-        })
+        })*/
     ]
 }

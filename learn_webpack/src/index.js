@@ -1,4 +1,4 @@
-// import moment from "moment";
+import moment from "moment";
 import {fool, log} from './fool';
 import './index.css';
 import './style.css';
@@ -7,7 +7,7 @@ import './main.less';
 import {utils} from "utils";
 import html from './file.html'
 import {square, cube} from './utils/math'
-import {forEach, includes} from 'lodash-es';
+import {forEach, /*includes*/} from 'lodash-es';
 
 document.getElementById('file').innerHTML = html;
 
@@ -22,11 +22,14 @@ console.log('BROWSER_SUPPORTS_HTML5: ', BROWSER_SUPPORTS_HTML5); // true
 console.log('CONSTANTS: ', CONSTANTS); // { APP_VERSION: "1.2.2" }
 if(!BROWSER_SUPPORTS_HTML5) require("html5shiv");
 
-// const m = moment();
-// console.log(m);
+const m = moment();
+console.log(m);
 
 forEach([1, 2], (item) => {
     console.log(item)
 })
 
-console.log(includes([1, 2, 3], 1))
+import(/* webpackChunkName: "includes" */"lodash-es/includes.js").then(includes => {
+    console.log(includes);
+    console.log(includes.default([1, 2, 3], 1))
+});
