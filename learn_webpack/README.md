@@ -1380,3 +1380,194 @@ import(/* webpackChunkName: "jquery" */ 'jquery').then(($) => {
 * 在chrome中查看network查看请求、响应的时间
 * 打包后使用webpack-bundle-analyzer查看代码分析
 * 直接查看打包后的包体积
+
+
+
+### webpack-dev-server
+
+本地环境，用于运行我们开发的代码，相当于提供了一个简单的服务器，用于访问webpack构建好的静态文件，我们日常开发时可以使用它来调试前端代码。
+
+webpack-dev-server是webpack官方提供的一个工具，可以基于当前的webpack构建配置快速启动一个静态服务，除此之外，基于webpack-dev-server丰富的配置，我们还可以使用它来帮助我们进一步完善本地的前端开发环境。
+
+#### 1. 配置
+
+webpack-dev-server默认使用8080端口，如果使用了html-webpack-plugin来构建HTML文件，并且有一个index.html的构建结果，那么直接访问8080就可以看到index.html页面了；如果没有HTML文件，那么webpack-dev-server就会生成一个展示静态资源列表的页面。
+
+![](./WX20220531-113210@2x.png)
+
+在webpack的配置文件中，可以通过`devServer`字段来配置webpack-dev-server，如端口、开启gzip压缩等。
+
+* **`host`字段**：用于指定要使用的host，默认是`localhost`。
+
+* **`port`字段**：用于指定静态服务的端口，默认是`8080`，通常情况下都不需要改动。
+
+* **`static.publicPath`字段**：用于指定构建好的静态文件在浏览器中用什么路径去访问，默认是`/`，如一个构建好的文件`bundle.js`，完整的访问路径是`http://localhost:8080/bundle.js`，如果配置了`publicPath: '/assets'`，那么完整的访问路径就是`http://localhost:8080/assets/bundle.js`。可以使用整个URL来作为`publicPath`的值，如`publicPath: 'http://localhost:8080/assets/'`。
+
+  **`static.directory`字段**：用于指定服务器从哪里提供内容
+
+  原来的publicPath和contentBase字段已弃用。
+
+* **`proxy`字段**：用于配置webpack-dev-server将特定URL的请求代理到另外一台服务器上。通常可以用于解决开发环境下的接口请求跨域。使用方式：
+
+  ```javascript
+  module.exports = {
+    // ...
+    devServer: {
+      proxy: {
+        '/api': {
+          target: 'http://localhost:3000', // 将URL中带有/api的请求代理到本地的3000端口的服务上
+          pathRewrite: {
+            '^/api': '', // 把URL中path部分的`api`移除掉
+          }
+        }
+      }
+    }
+  }
+  ```
+
+  proxy功能是使用[http-proxy-middleware](https://github.com/chimurai/http-proxy-middleware)来实现的
+
+* **`setupMiddlewares`字段**：提供执行自定义函数和应用自定义中间件的能力。🌰：
+
+  ```javascript
+  module.exports = {
+    // ...
+    devServer: {
+      // 提供执行自定义函数和应用自定义中间件的能力
+      setupMiddlewares: function (middlewares, devServer) {
+        if(!devServer) {
+          throw new Error('webpack-dev-server is not defined');
+        }
+        devServer.app.get('/setup-middleware/some/path', function(req, res) { // 当访问/setup-middleware/some/path路径时，返回send的内容
+          res.send('console.log("setup-middlewares option GET")');
+        });
+        // 如果想在所有其他中间件之前运行一个中间件，
+        // 可以使用unshift方法，与放在`onBeforeSetupMiddleware`作用一样
+        middlewares.unshift({
+          name: 'first-in-array',
+          path: '/foo/path',
+          middleware: (req, res) => {
+            res.send('Foo!');
+          }
+        });
+  
+        // 如果想在所有其他中间件之后运行一个中间件，
+        // 可以使用push方法，与放在`onAfterSetupMiddleware`作用一样
+        middlewares.push({
+          name: 'hello-world-test-one',
+          path: '/foo/bar',
+          middleware: (req, res) => {
+            res.send('Foo Bar!');
+          }
+        });
+  
+        middlewares.push((req, res) => {
+          res.send('Hello, world');
+        })
+  
+        return middlewares;
+      }
+    }
+  }
+  ```
+
+  可以用于拦截部分请求返回特定内容，或者实现简单的数据mock。也可以用于打印日志或者做一些额外处理。
+
+* 更多配置可以参考官方文档[webpack-dev-server](https://webpack.js.org/configuration/dev-server/#devserversetupmiddlewares)
+
+#### 2. webpack-dev-middleware
+
+中间件就是，在Express之类的Web框架中实现各种各样功能（如静态文件访问）的这一部分函数。多个中间件可以一起协同构建起一个完整的Web服务器。[Express使用中间件](https://www.expressjs.com.cn/guide/using-middleware.html)
+
+[webpack-dev-middleware](https://github.com/webpack/webpack-dev-middleware)就是在Express中提供webpack-dev-server静态服务能力的一个中间件，我们可以很轻松地将其集成到现有的Express代码中去，就像添加一个Express中间件那么简单。
+
+1. 首先安装webpack-dev-middleware依赖：
+
+   `npm install webpack-dev-middleware --save-dev`
+
+   还是会移除掉image-webpack-loader，需要重新安装依赖
+
+2. 创建一个Node.js服务的脚本文件
+
+   ```javascript
+   const webpack = require('webpack');
+   const middleware = require('webpack-dev-middleware');
+   const webpackOptions = require('./webpack.config.js'); // webpack配置文件的路径，不支持image-webpack-loader和CopyPlugin，需要注释掉
+   
+   webpackOptions.mode = 'development'; // 本地的开发环境默认就是使用development mode
+   
+   const compiler= webpack(webpackOptions);
+   const express = require('express');
+   const app = express();
+   
+   app.use(middleware(compiler, {
+     // webpack-dev-middleware的配置选项
+     // publicPath: '/assets',
+     headers: () => [ // 请求资源的响应头
+       {
+         key: "X-custom-header",
+         value: "foo"
+       },
+       {
+         key: "Y-custom-header",
+         value: "bar"
+       }
+     ],
+   }))
+   
+   // 其他web服务中间件
+   // app.use(...)
+   
+   app.listen(3000, () => console.log('Example app listening on port 3000!'));
+   ```
+
+3. 运行该文件
+
+   ```shell
+   nodemon app.js
+   ```
+
+4. 运行成功后，localhost:3000默认打开的是webpack打包后的html文件，要修改html打开的路径，可以配置webpack-dev-middleware的配置选项publicPath
+
+使用webpack-dev-server的好处是相对简单，直接安装依赖后执行命令即可，而使用webpack-dev-middleware的好处是可以在既有的Express代码基础上快速添加webpack-dev-server的功能，同时利用Express来根据需要添加更多的功能，如mock服务、代理API请求等。
+
+webpack-dev-middleware目前使用看来对有些webpack插件的支持不够。（e.g. image-webpack-loader、CopyPlugin，devServer配置无效）
+
+#### 3. mock
+
+本地开发除了提供静态内容访问的服务，有时还需要模拟后端API数据来做一些应用测试工作，这就需要一个mock数据的服务，可以利用webpack-dev-server的`setupMiddlewares`或者`proxy`配置，或者使用webpack-dev-middleware结合Express，来实现简单的mock服务。🌰：
+
+```javascript
+// mock.js
+module.exports = function mock(app) {
+  app.get("/some/path", (req, res) => {
+    res.json({data: "mock"});
+  });
+  
+  // ... 其他的请求 mock
+  // 如果 mock 代码过多，可以将其拆分成多个代码文件，然后 require 进来
+}
+
+// webpack.config.js
+const mock = require('./mock');
+
+module.exports = {
+  // ... 
+  devServer: {
+    setupMiddlewares: function(middlewares, devServer) {
+      // ...
+      mock(devServer.app);
+      // ...
+      return middlewares;
+    }
+  }
+}
+```
+
+由于`app.get("/some/path", (req, res) => {})`的callback中可以拿到`req`请求对象，就可以根据请求参数来改变返回的结果，即通过参数来模拟多种场景的返回数据来协助测试多种场景下的代码应用。
+
+单独实现或者使用一个mock服务时，可以通过`proxy`来配置部分路径代理到对应的mock服务上，从而把mock服务集成到当前的开发服务中去。（跨域）
+
+#### 4. 思考
+
+开发过程中其他可以在webpack-dev-server配置辅助开发的工具，如：配置服务启动打开浏览器`open: true`

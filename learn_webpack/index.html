@@ -27,7 +27,26 @@
         <div class="test-box"></div>
     </div>
     <div id="file" style="position: relative; z-index: 3; color: #fff;"></div>
+    <script src="/setup-middleware/some/path"></script>
+    <script src="/foo/path"></script>
+    <script src="/foo/bar"></script>
+    <script>
+        function testMiddleware(path) {
+            const x = new XMLHttpRequest();
+            x.open("get", path);
+            x.send({name: 'student'});
+            x.onreadystatechange = function () {
+                if(x.readyState === 4) {
+                    if(x.status >= 200 && x.status < 300) {
+                        console.log(x.response);
+                    }
+                }
+            }
+        }
+        testMiddleware("/test");
+        testMiddleware("/some/path");
+    </script>
     <!-- 引用dll文件 -->
-    <script src="/public/moment.dll.js"></script>
+    <script src="/assets/moment.dll.js"></script>
 </body>
 </html>

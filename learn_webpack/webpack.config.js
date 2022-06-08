@@ -7,6 +7,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const ProgressPlugin = require('progress-webpack-plugin');
+const mock = require('./mock');
 
 // src/pages 目录为页面入口的根目录
 const pagesRoot = path.resolve(__dirname, './src/pages');
@@ -49,7 +50,65 @@ module.exports = {
     },
 
     devServer: {
-        static: path.resolve(__dirname, 'dist') // 开发服务器启动路径
+        host: 'localhost',
+        port: 8080,
+        open: true,
+        static: [
+            {
+                directory: path.resolve(__dirname, 'dist/public'),
+                publicPath: '/assets'
+            }, // 开发服务器启动路径
+            {
+                directory: path.resolve(__dirname, 'dist'),
+                publicPath: '/'
+            }
+        ],
+        proxy: {
+            '/api': {
+                target: 'http://localhost:3000',
+                pathRewrite: {
+                    '^/api': ''
+                }
+            }
+        },
+        // 提供执行自定义函数和应用自定义中间件的能力
+        setupMiddlewares: function (middlewares, devServer) {
+            // console.log(middlewares);
+            if(!devServer) {
+                throw new Error('webpack-dev-server is not defined');
+            }
+            mock(devServer.app);
+            devServer.app.get('/setup-middleware/some/path', function(req, res) {
+                res.send('console.log("setup-middlewares option GET")');
+            });
+            // 如果想在所有其他中间件之前运行一个中间件，
+            // 可以使用unshift方法，与放在`onBeforeSetupMiddleware`作用一样
+            middlewares.unshift({
+                name: 'first-in-array',
+                path: '/foo/path',
+                middleware: (req, res) => {
+                    res.send('console.log("Foo!")');
+                }
+            });
+
+            // 如果想在所有其他中间件之后运行一个中间件，
+            // 可以使用push方法，与放在`onAfterSetupMiddleware`作用一样
+            middlewares.push({
+                name: 'hello-world-test-one',
+                path: '/foo/bar',
+                middleware: (req, res) => {
+                    res.send('console.log("Foo Bar!")');
+                }
+            });
+
+            middlewares.push((req, res) => {
+                console.log(res);
+                res.send('Hello, world');
+            })
+            // console.log(middlewares);
+
+            return middlewares;
+        }
     },
 
     optimization: { // TerserPlugin的使用需要在optimization中配置，属于构建代码优化的一部分
@@ -82,7 +141,7 @@ module.exports = {
 
     // 配置如何处理不同类型的模块
     module: {
-        noParse: /jquery|loash/,
+        noParse: /jquery|loash/, // 不需要编译处理的模块
         rules: [
             {
                 test: /\.less$/,
@@ -126,7 +185,7 @@ module.exports = {
                         maxSize: 4 * 1024 // 4kb
                     }
                 },
-                use: [
+                /*use: [
                     {
                         loader: 'image-webpack-loader',
                         options: {
@@ -149,7 +208,7 @@ module.exports = {
                             }
                         }
                     }
-                ]
+                ]*/
             },
             {
                 test: /\.html$/i,
@@ -160,13 +219,13 @@ module.exports = {
     },
 
     plugins: [
-        new CopyPlugin({
+        /*new CopyPlugin({
             patterns: [
                 { from: 'src/public', to: 'public'}
             ]
-        }),
+        }),*/
         new MiniCssExtractPlugin({
-            filename: '[name]-[hash].css' // 这里也可以使用hash，默认是main.css
+            filename: '[name]-[fullhash].css' // 这里也可以使用hash，默认是main.css
         }), // 将css单独抽离的plugin
         new HtmlWebpackPlugin({
             // inject: true,
