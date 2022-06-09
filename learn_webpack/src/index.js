@@ -2,7 +2,7 @@ import moment from "moment";
 import {fool, log} from './fool';
 import './index.css';
 import './style.css';
-import styles from './index.module.css';
+// import styles from './index.module.css'; // module css 会影响应用更新时HMR执行的回调调用
 import './main.less';
 import {utils} from "utils";
 import html from './file.html'
@@ -23,11 +23,27 @@ console.log('CONSTANTS: ', CONSTANTS); // { APP_VERSION: "1.2.2" }
 // if(!BROWSER_SUPPORTS_HTML5) require("html5shiv");
 
 const m = moment();
-console.log(m, m.year());
+console.log(m, m.year(), 4);
 
 forEach([1, 2], (item) => {
     console.log(item)
 })
+
+if (module.hot) {
+    console.log("+++++++++++++++++++++++++++++");
+    // module.hot.accept("utils", () => {
+    //     console.log("Accepting the updated utils module");
+    //     console.log("++==================================++");
+    //     utils();
+    // })
+    // module.hot.accept((error) => { // 处理自身的更新异常
+    //     // 这里是异常回调，当更新异常时调用
+    //     console.log("Accepting the updated self", error);
+    //     console.log("++=============self================++");
+    // })
+
+    module.hot.decline("utils");
+}
 
 import(/* webpackChunkName: "includes" */"lodash-es/includes.js").then(includes => {
     console.log(includes);

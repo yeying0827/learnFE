@@ -1364,6 +1364,10 @@ module.exports = {
 import(/* webpackChunkName: "jquery" */ 'jquery').then(($) => {
   console.log($);
 })
+import(/* webpackChunkName: "includes" */"lodash-es/includes.js").then(includes => {
+    console.log(includes);
+    console.log(includes.default([1, 2, 3], 1))
+});
 ```
 
 由于动态加载代码模块的语法依赖于promise，对于低版本的浏览器，需要添加promise的[polyfill](https://github.com/stefanpenner/es6-promise)后才能使用。
@@ -1529,7 +1533,7 @@ webpack-dev-server默认使用8080端口，如果使用了html-webpack-plugin来
 
 4. 运行成功后，localhost:3000默认打开的是webpack打包后的html文件，要修改html打开的路径，可以配置webpack-dev-middleware的配置选项publicPath
 
-使用webpack-dev-server的好处是相对简单，直接安装依赖后执行命令即可，而使用webpack-dev-middleware的好处是可以在既有的Express代码基础上快速添加webpack-dev-server的功能，同时利用Express来根据需要添加更多的功能，如mock服务、代理API请求等。
+使用webpack-dev-server的好处是相对简单，直接安装依赖后执行命令即可，而使用webpack-dev-middleware的好处是可以在既有的Express代码基础上快速添加webpack-dev-server的功能（[启动node后端服务时自动启动webpack打包相关程序](https://blog.csdn.net/qq_41614928/article/details/103939379)），同时利用Express来根据需要添加更多的功能，如mock服务、代理API请求等。
 
 webpack-dev-middleware目前使用看来对有些webpack插件的支持不够。（e.g. image-webpack-loader、CopyPlugin，devServer配置无效）
 
@@ -1571,3 +1575,171 @@ module.exports = {
 #### 4. 思考
 
 开发过程中其他可以在webpack-dev-server配置辅助开发的工具，如：配置服务启动打开浏览器`open: true`
+
+
+
+### 热模块替换
+
+即Hot Module Replacement，简称HMR，过去的Hot Reloading，是当代码变更时通知浏览器刷新页面，以避免频繁手动刷新浏览器页面。HMR可以理解为增强版的Hot Reloading，但不用整个页面刷新，而是局部替换掉部分模块代码并且使其生效，可以看到代码变更后的效果。
+
+HMR即避免了频繁手动刷新页面，也减少了页面刷新时的等待，可以极大地提高前端页面开发效率。
+
+#### 1. 开箱即用
+
+在webpack的development mode下webpack-dev-server，HMR就是开箱即用的功能，简单添加一个配置项即可开启（默认开启）：
+
+```javascript
+module.exports = {
+  // ...
+  devServer: {
+    hot: true,
+  }
+}
+```
+
+在浏览器打开页面时，也可以从控制台看到大概的HMR执行流程：
+
+![HMR执行流程](./img.png)
+
+#### 2. 运行原理
+
+webpack内部运行时，会维护一份用于管理构建代码时各个模块之间交互的表数据，webpack官方称之为manifest，其中包括入口代码文件和构建出来的bundle文件的对应关系。可以使用[WebpackManifestPlugin](https://github.com/shellscape/webpack-manifest-plugin)插件来输出这样的一份数据。使用：
+
+1. 安装 `npm install webpack-manifest-plugin --save-dev`
+
+2. 编写代码
+
+   ```javascript
+   // webpack.config.js
+   const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
+   
+   module.exports = {
+     // ...
+     plugins: [
+       new WebpackManifestPlugin({})
+     ]
+   }
+   ```
+
+3. 运行打包 `npm run build`
+
+4. 生成的打包文件中多了一个`manifest.json`
+
+   ```json
+   {
+     "main.css": "auto/main-88245ac81c142aa116b4.css",
+     "main.js": "auto/main.js",
+     "includes.js": "auto/includes.js",
+     "IMG_3549.JPG": "auto/d780315fd484139c75b4.JPG",
+     "index.html": "auto/index.html",
+     "public/index.html": "auto/public/index.html"
+   }
+   ```
+
+**HMR大致运行流程图**：
+
+![HMR大致运行流程图](./img_1.png)
+
+1. 开启hot功能后webpack会往我们应用的主要代码中添加WS相关的代码，用于和服务器保持连接，等待更新动作，实现和Hot Reloading类似，本地代码变更时通知浏览器运行时做相应的处理。
+
+2. webpack还会往应用代码中添加HMR运行时的代码，主要用于定义代码模块在应用更新时的API。[源码：HotModuleReplacement.runtime.js](https://github.com/webpack/webpack/blob/main/lib/hmr/HotModuleReplacement.runtime.js)
+
+这两部分可以支持整个HMR的功能了。上图中左下角的流程相对容易理解：当有更新时，webpack-dev-server发送更新信号给HMR运行时，然后HMR再请求所需要的更新数据，请求的更新数据没有问题的话就应用更新。
+
+HMR运行时代码会提供定义代码模块在应用更新时执行的API，这些API可以让我们在模块中定义接收到HMR更新应用信号时，需要额外做什么工作。如：style-loader就需要实现HMR接口，当收到更新时，使用新的样式替换掉旧的样式。大致是这样的：
+
+```javascript
+if(module.hot) {
+  module.hot.accept('/some/path', function() {
+    // 用新样式替换旧样式
+  })
+}
+```
+
+[HMR interface implemention in style-loader](https://github.com/webpack-contrib/style-loader/blob/master/src/index.js#L34)
+
+HMR应用更新是使用`webpackHotUpdate`来处理的：
+
+```javascript
+webpackHotUpdate(id, {
+  'modulePath': function (){
+    // 模块更新后的代码
+  }
+})
+```
+
+执行`webpackHotUpdate`时如发现模块代码实现了HMR接口，就会执行相应的回调或者方法，从而达到应用更新时，模块可以自行管理自己所需要额外做的工作。但并不是所有的模块都有额外的处理，当遇见没有实现HMR接口的模块时，就会往上层冒泡。
+
+webpack如何保证HMR接口中的引用是最新的模块代码？🌰：
+
+```javascript
+// ...
+import { utils } from 'utils';
+
+utils();
+
+if (module.hot) {
+    console.log("+++++++++++++++++++++++++++++");
+    module.hot.accept("utils", () => {
+        console.log("Accepting the updated utils module");
+        console.log("++==================================++");
+        utils();
+    })
+}
+```
+
+代码在webpack构建后的结果(chrome开发者工具)：
+
+```javascript
+if (true) {
+  console.log("+++++++++++++++++++++++++++++");
+  module.hot.accept(/*! utils */ "./src/utils/index.js",
+    function(__WEBPACK_OUTDATED_DEPENDENCIES__) { 
+    	/* harmony import */ utils__WEBPACK_IMPORTED_MODULE_5__ =
+        __webpack_require__(/*! utils */ "./src/utils/index.js");
+    (function () {   
+      console.log("Accepting the updated utils module");
+      console.log("++==================================++");
+      (0,utils__WEBPACK_IMPORTED_MODULE_5__.utils)();  
+    })(__WEBPACK_OUTDATED_DEPENDENCIES__); 
+}.bind(this)
+```
+
+可以看到utils使用`_webpack_require_`来引用了，所以可以确保它是最新的模块代码。
+
+日常开发中，我们需要更多的工具来帮助我们实现HMR的接口，避免编写过多HMR需要的代码。如React在组件代码更新时可能需要触发重新render来实现实时的组件展示效果，官方提供了一些现有的工具，可以参考[hot module replacement tools](https://webpack.js.org/guides/hot-module-replacement/#other-code-and-frameworks)
+
+#### 3. 常见的module.hot的API
+
+* `module.hot.accept`方法：指定在应用特定代码模块更新时执行相应的callback，第一个参数可以是字符串或者数组。也可以用于处理自身的更新，仅使用一个callback参数则是处理自身更新，更新时自身模块代码会再执行一次，并且不会通知上层模块，即不会触发上层模块的相关accept callback。
+
+  ```javascript
+  module.hot.accept((error) => { // 处理自身的更新异常
+    // 这里是异常回调，当更新异常时调用
+    console.log("Accepting the updated self", error);
+    console.log("++=============self================++");
+  })
+  ```
+
+* `module.hot.decline`方法：对于指定的代码模块，拒绝进行模块代码的更新，进入更新失败的状态。比较少用到，如果不传参数的话，则表明自身模块是不可更新的。
+
+* `module.hot.dispose`方法：用于添加一个处理函数，在当前模块代码被替换时运行该函数，通常用于移除模块之前添加的持久化资源或者相关状态等。🌰：
+
+  ```javascript
+  if(module.hot) {
+    module.hot.dispose((data) => {
+      // data用于传递数据，如果有需要传递的数据可以挂在data对象上，然后在模块代码更新后可以通过module.hot.data来获取
+    })
+    
+    // 这里可以通过判断module.hot.data来区分该模块是否为更新后的第二次执行
+    if(module.hot.data) {
+      // ...
+    }
+  }
+  ```
+
+  
+
+* `module.hot.removeDisposeHandler`方法：用于移除`dispose`方法添加的callback。
+
+更多API可参考官方文档：[Hot Module Replacement APIs](https://webpack.js.org/api/hot-module-replacement/#module-api)

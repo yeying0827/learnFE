@@ -8,6 +8,7 @@ const TerserPlugin = require('terser-webpack-plugin');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const ProgressPlugin = require('progress-webpack-plugin');
 const mock = require('./mock');
+const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 
 // src/pages 目录为页面入口的根目录
 const pagesRoot = path.resolve(__dirname, './src/pages');
@@ -102,7 +103,7 @@ module.exports = {
             });
 
             middlewares.push((req, res) => {
-                console.log(res);
+                // console.log(res);
                 res.send('Hello, world');
             })
             // console.log(middlewares);
@@ -185,7 +186,7 @@ module.exports = {
                         maxSize: 4 * 1024 // 4kb
                     }
                 },
-                /*use: [
+                use: [
                     {
                         loader: 'image-webpack-loader',
                         options: {
@@ -208,7 +209,7 @@ module.exports = {
                             }
                         }
                     }
-                ]*/
+                ]
             },
             {
                 test: /\.html$/i,
@@ -219,11 +220,11 @@ module.exports = {
     },
 
     plugins: [
-        /*new CopyPlugin({
+        new CopyPlugin({
             patterns: [
                 { from: 'src/public', to: 'public'}
             ]
-        }),*/
+        }),
         new MiniCssExtractPlugin({
             filename: '[name]-[fullhash].css' // 这里也可以使用hash，默认是main.css
         }), // 将css单独抽离的plugin
@@ -259,5 +260,6 @@ module.exports = {
             // 描述 moment 动态链接库的文件内容
             manifest: require('./dist/public/moment.manifest.json'),
         })*/
+        new WebpackManifestPlugin({})
     ]
 }
