@@ -1,0 +1,63 @@
+{
+  "name": "learn_webpack",
+  "version": "1.0.0",
+  "description": "#### 优点 webpack 本身具备了诸多优点：从单一入口出发，打包所有前端资源，使用 loader 处理多种代码语言的转换，使用 plugin 扩展原有的模块打包流程，使用 HMR 提升开发体验，利用代码压缩和代码分割来提升前端加载性能等等。",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack",
+    "build:pro": "webpack --env production",
+    "build:pro:2": "webpack --config webpack.production.js",
+    "build:dev": "webpack --config webpack.development.js",
+    "serve": "webpack-dev-server",
+    "serve:pro": "webpack-dev-server --config webpack.production.js",
+    "serve:dev": "webpack-dev-server --config webpack.development.js",
+    "serve:test": "proxy=test webpack-dev-server --config webpack.test.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.17.10",
+    "@babel/preset-env": "^7.17.10",
+    "autoprefixer": "^10.4.7",
+    "babel-loader": "^8.2.5",
+    "copy-webpack-plugin": "^10.2.4",
+    "css-loader": "^6.7.1",
+    "cssnano": "^5.1.9",
+    "file-loader": "^6.2.0",
+    "html-loader": "^3.1.0",
+    "html-webpack-plugin": "^5.5.0",
+    "image-webpack-loader": "^8.1.0",
+    "less": "^4.1.2",
+    "less-loader": "^10.2.0",
+    "mini-css-extract-plugin": "^2.6.0",
+    "postcss-loader": "^7.0.0",
+    "progress-webpack-plugin": "^1.0.16",
+    "style-loader": "^3.3.1",
+    "terser-webpack-plugin": "^5.3.1",
+    "webpack": "^5.72.1",
+    "webpack-bundle-analyzer": "^4.5.0",
+    "webpack-cli": "^4.9.2",
+    "webpack-dev-middleware": "^5.3.3",
+    "webpack-dev-server": "^4.9.0",
+    "webpack-manifest-plugin": "^5.0.0",
+    "webpack-merge": "^5.8.0"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version",
+      "last 1 ie version"
+    ]
+  },
+  "dependencies": {
+    "lodash-es": "^4.17.21",
+    "moment": "^2.29.3"
+  }
+}

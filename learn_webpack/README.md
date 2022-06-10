@@ -1743,3 +1743,158 @@ if (true) {
 * `module.hot.removeDisposeHandler`方法：用于移除`dispose`方法添加的callback。
 
 更多API可参考官方文档：[Hot Module Replacement APIs](https://webpack.js.org/api/hot-module-replacement/#module-api)
+
+
+
+### 开发流程
+
+webpack的mode有development何production两种选项，分别对应了日常开发时的两套构建环境：
+
+* 开发环境：构建结果用于本地开发调试，不进行代码压缩，打印debug 信息，包含sourcemap文件
+* 生产环境：代码都是压缩后，运行时不打印debug信息，静态文件不包括sourcemap
+
+但日常开发并不止两套环境，可能还有测试环境、预发环境，多个环境中可能有些许差别，所以在大多情况下，不仅仅需要一个webpack的配置，还需要根据不同的环境配置不同的开发设置。
+
+如何更好地处理webpack的配置来满足开发中的多样性要求？如何更好地区分环境来进行不同配置的构建？
+
+#### 1. 动态控制mode：命令行参数
+
+通过不同的命令执行不同环境的构建。
+
+根据官方的文档[多种配置类型](https://webpack.js.org/configuration/configuration-types/)，配置文件可以对外暴露一个函数，所以可以这样做：
+
+```javascript
+module.exports = (env, argv) => ({
+  mode: env.production ? 'production': 'development', // 从env参数获取mode
+  devtool: env.production ? false: 'eval-cheap-source-map', // 开发环境需要sourcemap
+})
+```
+
+然后在「package.json」中配置不同环境的构建命令：
+
+```json
+{
+  "scripts": {
+    "build:pro": "webpack --env.production"
+  }
+}
+```
+
+运行：`npm run build:pro`。webpack5中脚本是：`webpack --env production`
+
+webpack的运行时环境是Node.js，也可以通过Node.js提供的机制给要运行的webpack程序传递环境变量，来控制不同环境下的构建行为。
+
+这样获取命令行参数之后，就能够区分不同的构建环境，然后根据不同环境再对特殊的loader或plugin做额外的配置就可以了。
+
+#### 2. 拆分配置：webpack-merge
+
+大量环境变量判断的配置，会让整个webpack的配置变得复杂。我们可以把webpack的配置按照不同的环境拆分成多个文件，运行时直接根据环境变量加载对应的配置即可。提高可维护性。
+
+基本的划分：
+
+* webpack.base.js：基础部分，即多个文件中共享的配置
+* webpack.development.js：开发环境使用的配置
+* webpack.production.js：生成环境使用的配置
+* webpack.test.js：测试环境使用的配置
+
+如何处理这样的配置拆分？
+
+对于webpack的配置，其实是对外暴露一个JS对象，所以对于这个对象，可以用JS代码来修改它，如：
+
+```javascript
+const config = {
+  // ... webpack配置
+};
+
+// 修改这个config来调整配置，如添加一个新的插件
+config.plugins.push(new YourPlugin());
+
+module.exports = config;
+```
+
+[webpack-merge](https://github.com/survivejs/webpack-merge)可以比较智能地合并多个配置对象，通过判断环境变量，将对应环境的多个配置对象整合后提供给webpack使用。
+
+webpack配置基础部分，和原先的webpack.config.js文件差不多，然后webpack.development.js或其他环境下的配置文件需要添加loader或plugin，可以使用webpack-merge的API，如：
+
+```javascript
+const {merge} = require('webpack-merge');
+const webpack = require('webpack');
+const base = require('./webpack.base');
+
+module.exports = merge(base, {
+  optimization: {
+    nodeEnv: false, // webpack5会根据mode自动给process.env.NODE_ENV赋值，要重新赋值需要设置该字段为false
+  },
+  module: {
+    rules: [
+      // 用smart API，当这里的匹配规则相同且use值都是数组时，smart会识别后处理
+      // 和base配置合并后，这里会是{ test: /\.js$/, use: ['babel', 'coffee'] }
+      // 如果这里use的值用的是字符串或者对象的话，那么会替换掉原本的规则use的值
+      {
+        test: /\.js$/,
+        use: ['coffee']
+      },
+      // ...
+    ]
+  },
+  plugins: [
+    // plugins这里的数组会和base中的plugins数组进行合并
+    new webpack.DefinePlugin({
+      'process.env.NODE_ENV': JSON.stringify('development'),
+    })
+  ]
+})
+```
+
+webpack-merge提供的`merge`方法，可以帮助我们更加轻松地处理loader配置的合并。webpack-merge还有其他API可以用于自定义合并行为，可查阅官方文档[webpack-merge](https://github.com/survivejs/webpack-merge)
+
+#### 3. 改善开发流程：两个例子
+
+* devtool
+
+  devtool是用于控制代码构建的sourcemap输出的，可参考文档[devtool](https://webpack.js.org/configuration/devtool/)和例子[devtool example](https://github.com/webpack/webpack/tree/main/examples/source-map)。
+
+  一般情况下开发环境使用`eval-cheap-source-map`，来确保sourcemap基本可用且还有着不错的构建速度，在构建和调试中取个平衡。
+
+  在测试或生产等环境中使用`none`来避免sourcemap对外可见，或者用`sourcemap`来生成sourcemap文件，但不发布到线上，而是转移到另外的地方，便于生产环境上的问题定位。
+
+* 接口服务
+
+  配置mock或proxy
+
+  在开发环境中，我们配置proxy来连接后端的开发环境，或者使用mock来模拟接口服务。
+
+  测试、预发或者线上环境，需要本地代码调试时，可以将proxy设置指向对应的环境后端服务接口地址，从而实现本地代码运行其他环境的接口数据，可以很方便地用于不同环境的联调以及问题定位。
+
+  可以在运行webpack-dev-server时通过proxy参数来控制你需要代理转发的环境地址，如：
+
+  ```json
+  {
+    "scripts": {
+      "serve:test": "proxy=test webpack-dev-server --config webpack.test.js"
+    }
+  }
+  ```
+
+  ```javascript
+  // webpack.test.js
+  console.log(process.env.proxy); // test
+  
+  const service = {
+    test: '', // 测试环境的接口服务地址
+    // ...
+  }
+  module.exports = {
+    // ...
+    devServer: {
+      proxy: {
+        '/api': {
+          target: service[process.env.proxy],
+          pathRewrite: {'^/api': ''}
+        }
+      }
+    }
+  }
+  ```
+
+  

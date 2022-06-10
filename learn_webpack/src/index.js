@@ -20,6 +20,7 @@ console.log('PRODUCTION: ', PRODUCTION); // true
 console.log('TWO: ', TWO); // 2
 console.log('BROWSER_SUPPORTS_HTML5: ', BROWSER_SUPPORTS_HTML5); // true
 console.log('CONSTANTS: ', CONSTANTS); // { APP_VERSION: "1.2.2" }
+console.log('process.env.NODE_ENV: ', process.env.NODE_ENV);
 // if(!BROWSER_SUPPORTS_HTML5) require("html5shiv");
 
 const m = moment();

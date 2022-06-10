@@ -4,11 +4,8 @@ const webpack = require('webpack');
 const CopyPlugin = require('copy-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const ProgressPlugin = require('progress-webpack-plugin');
-const mock = require('./mock');
-const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
 
 // src/pages 目录为页面入口的根目录
 const pagesRoot = path.resolve(__dirname, './src/pages');
@@ -19,9 +16,8 @@ const entries = fs.readdirSync(pagesRoot).reduce((entries, page) => {
     return entries;
 }, {});
 
-module.exports = (env, argv) => {console.log('env.production', env.production); return {
-    mode: env.production ? 'production' : 'development', // 指定构建模式，从env参数获取mode
-    devtool: env.production ? false : 'eval-cheap-source-map', // 开发环境需要sourcemap
+module.exports = {
+    mode: 'production', // 指定构建模式
 
     // 配置如何解析模块路径
     resolve: {
@@ -51,95 +47,6 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
         filename: '[name].js' // 指定构建生成的文件名，默认是main.js
     },
 
-    devServer: {
-        host: 'localhost',
-        port: 8080,
-        open: true,
-        static: [
-            {
-                directory: path.resolve(__dirname, 'dist/public'),
-                publicPath: '/assets'
-            }, // 开发服务器启动路径
-            {
-                directory: path.resolve(__dirname, 'dist'),
-                publicPath: '/'
-            }
-        ],
-        proxy: {
-            '/api': {
-                target: 'http://localhost:3000',
-                pathRewrite: {
-                    '^/api': ''
-                }
-            }
-        },
-        // 提供执行自定义函数和应用自定义中间件的能力
-        setupMiddlewares: function (middlewares, devServer) {
-            // console.log(middlewares);
-            if(!devServer) {
-                throw new Error('webpack-dev-server is not defined');
-            }
-            mock(devServer.app);
-            devServer.app.get('/setup-middleware/some/path', function(req, res) {
-                res.send('console.log("setup-middlewares option GET")');
-            });
-            // 如果想在所有其他中间件之前运行一个中间件，
-            // 可以使用unshift方法，与放在`onBeforeSetupMiddleware`作用一样
-            middlewares.unshift({
-                name: 'first-in-array',
-                path: '/foo/path',
-                middleware: (req, res) => {
-                    res.send('console.log("Foo!")');
-                }
-            });
-
-            // 如果想在所有其他中间件之后运行一个中间件，
-            // 可以使用push方法，与放在`onAfterSetupMiddleware`作用一样
-            middlewares.push({
-                name: 'hello-world-test-one',
-                path: '/foo/bar',
-                middleware: (req, res) => {
-                    res.send('console.log("Foo Bar!")');
-                }
-            });
-
-            middlewares.push((req, res) => {
-                // console.log(res);
-                res.send('Hello, world');
-            })
-            // console.log(middlewares);
-
-            return middlewares;
-        }
-    },
-
-    optimization: { // TerserPlugin的使用需要在optimization中配置，属于构建代码优化的一部分
-        minimize: true, // 启用代码压缩
-        minimizer: [new TerserPlugin({
-            test: /\.js(\?.*)?$/i, // 只处理.js文件
-            terserOptions: {
-                compress: true
-            }
-        })], // 配置代码压缩工具
-        usedExports: true, // 模块内未使用的部分不进行导出
-        // concatenateModules: true,
-        // sideEffects: true
-        /*splitChunks: {
-            chunks: 'all',
-            name: 'common',
-            cacheGroups: {
-                defaultVendors: {
-                    test: /[\\/]node_modules[\\/]/,
-                    priority: -10
-                },
-                default: {
-                    minChunks: 2,
-                    priority: -20,
-                    reuseExistingChunk: true
-                }
-            },
-        }*/
-    },
 
     // 配置如何处理不同类型的模块
     module: {
@@ -186,31 +93,7 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
                     dataUrlCondition: {
                         maxSize: 4 * 1024 // 4kb
                     }
-                },
-                use: [
-                    {
-                        loader: 'image-webpack-loader',
-                        options: {
-                            mozjpeg: { // 压缩jpeg的配置
-                                progressive: true,
-                                quality: 65
-                            },
-                            optipng: { // 使用imagemin-optipng压缩png，enable false为关闭
-                                enabled: false
-                            },
-                            pngquant: { // 使用imagemin-pngquant压缩png
-                                quality: [0.65, 0.9],
-                                speed: 4
-                            },
-                            gifsicle: { // 压缩gif的配置
-                                interlaced: false,
-                            },
-                            webp: { // 开启webp，会把jpg和png图片压缩为webp格式
-                                quality: 75
-                            }
-                        }
-                    }
-                ]
+                }
             },
             {
                 test: /\.html$/i,
@@ -242,7 +125,6 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
             }
         }),
         new webpack.DefinePlugin({
-            PRODUCTION: JSON.stringify(true),
             VERSION: JSON.stringify('5fa3b9'),
             BROWSER_SUPPORTS_HTML5: true,
             TWO: '1+1',
@@ -251,16 +133,9 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
             },
             DLL_PATH: JSON.stringify('/public/moment.dll.js')
         }),
-        new webpack.IgnorePlugin({resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/}), // 忽略掉i18n代码文件
         // new BundleAnalyzerPlugin(), // 构建完成后在浏览器中可以查看分析结果
         new ProgressPlugin((percentage, message, ...args) =>  {
             console.log(percentage, message, ...args);
         }),
-        /*new webpack.DllReferencePlugin({
-            context: __dirname,
-            // 描述 moment 动态链接库的文件内容
-            manifest: require('./dist/public/moment.manifest.json'),
-        })*/
-        new WebpackManifestPlugin({})
     ]
-}}
+}

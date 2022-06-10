@@ -19,9 +19,8 @@ const entries = fs.readdirSync(pagesRoot).reduce((entries, page) => {
     return entries;
 }, {});
 
-module.exports = (env, argv) => {console.log('env.production', env.production); return {
-    mode: env.production ? 'production' : 'development', // 指定构建模式，从env参数获取mode
-    devtool: env.production ? false : 'eval-cheap-source-map', // 开发环境需要sourcemap
+module.exports = {
+    mode: 'production', // 指定构建模式
 
     // 配置如何解析模块路径
     resolve: {
@@ -263,4 +262,4 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
         })*/
         new WebpackManifestPlugin({})
     ]
-}}
+}
