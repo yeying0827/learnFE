@@ -1898,3 +1898,332 @@ webpack-merge提供的`merge`方法，可以帮助我们更加轻松地处理loa
   ```
 
   
+
+### 社区工具
+
+[awesome webpack](https://webpack.js.org/awesome-webpack/)：列举了许多webpack优秀的周边
+
+#### 1. [create-react-app](https://github.com/facebook/create-react-app)
+
+有一定局限性，基本上限定在用react开发的 项目上，但它是一个将webpack应用得十分好的工具。
+
+create-react-app的eject命令创建出来的配置还是蛮复杂的，自定义时修改起来也不方便，所以在此基础上衍生出来一个[react-app-rewired](https://github.com/timarney/react-app-rewired/)，可以不用eject把所有配置吐出来，就能够实现自定义构建配置。
+
+1. 安装依赖
+
+   `npm install react-app-rewired`
+
+2. 修改package.json中的脚本
+
+   ```json
+   {
+     "scripts": {
+       "start": "react-app-rewired start", // 原"react-scripts start"
+       "build": "react-app-rewired build", // 原"react-scripts build"
+       "test": "react-app-rewired test", // 原"react-scripts test"
+     }
+   }
+   ```
+
+3. 编写config-overrides.js
+
+   ```javascript
+   const HTMLWebpackPlugin = require('html-webpack-plugin');
+   
+   moudle.exports = function (config, env) {
+     // 对config进行修改
+     // 如：
+     config.plugins.push(new HTMLWebpackPlugin({
+       template: 'public/index1.html',
+       filename: 'index1.html'
+     }))
+     return config;
+   }
+   ```
+
+4. 也可以使用第三方库的config-overrides.js
+
+#### 2. webpack-chain
+
+[@vue/cli](https://cli.vuejs.org/zh/)提供了一种基于链式api的webpack配置方式，并且它内部的webpack配置也是用这种方式维护的，而这种配置方式的核心类库就是[webpack-chain](https://github.com/neutrinojs/webpack-chain)。
+
+webpack-chain提供了webpack配置的一个上层抽象的方法调用，可以更方便、更加细粒度地控制webpack的配置，而脚本编程的方式，也便于引入更多构建环境判断和处理的相关逻辑。
+
+```javascript
+// webpack.config.js
+const path = require('path');
+const Config = require('webpack-chain'); // webpack-chain提供一个Config类
+const HTMLWebpackPlugin = require('html-webpack-plugin');
+
+const config = new Config(); // 新建一个配置对象
+
+config
+	.mode('development')
+	// Interact with entry points
+	.entry('index')
+		.add('./src/index.js')
+		.end()
+	// Modify output settings
+	.output
+		.path(path.resolve(__dirname), 'dist')
+		.filename('[name].bundle.js');
+
+config
+  .resolve
+		.modules.add('/node_modules')
+		.add('../../node_modules') // 根据项目路径
+		.clear();
+
+config.plugin('html-template')
+	.use(HTMLWebpackPlugin, [{
+    template: './src/index.html'
+  }])
+
+module.exports = config.toConfig();
+```
+
+webpack-chain的使用需要了解链式调用的api。（有typescript支持）
+
+#### 3. neutrino
+
+webpack-chain是[neutrino](https://github.com/neutrinojs/neutrino)项目的产物，neutrino是一个基于webpack再次封装的构建工具，可以让你快速完成一个项目的前端构建工作的配置，有点像create-react-app。
+
+集成了很多基础的webpack配置，但是更加多样化，不仅支持react，还支持vue等其他前端类库，以及支持node相关项目。
+
+最大的亮点，是类似babel一样可以创建preset来自定义和共享配置，所以使用neutrino可以结合工作中实际项目需要，在享用它提供的一些基础配置的同时，自定义自己的一些配置。
+
+可以快速启动项目以及更好地复用构建配置(?)
+
+1. 创建项目，使用neutrino提供的脚手架工具
+
+   ` npx @neutrinojs/create-project neutrino-app`
+
+2. 修改`.neutrinorc.js`来自定义配置
+
+[官网](https://neutrinojs.org/)
+
+#### 4. [webpack-dashboard](https://github.com/FormidableLabs/webpack-dashboard)
+
+可以把webpack构建过程中的信息以一种更漂亮的方式展示出来
+
+1. 安装依赖`npm install webpack-dashboard --save-dev`
+
+2. 修改webpack.config.js
+
+   ```javascript
+   const DashboardPlugin = require('webpack-dashboard/plugin');
+   const Config = require('webpack-chain');
+   const config = new Config();
+   
+   // ...
+   config.plugin('dashboard')
+   	.use(DashboardPlugin);
+   
+   module.exports = config.toConfig();
+   ```
+
+3. 修改package.json中的脚本
+
+   ```json
+   {
+     "scripts": {
+       "serve:dash": "webpack-dashboard -- webpack-dev-server"
+     }
+   }
+   ```
+
+
+
+### 工作原理
+
+webpack本质上就是一个JS模块Bundler，用于将多个代码模块进行打包。
+
+JS模块Bundler的基础工作流程：
+
+#### 1. 古早：合并代码
+
+简单的合并代码文件的工具：有序地将多个代码文件合并到一起成为最终的js文件。
+
+缺点：在代码库越来越大的时候会变得难以维护，第一：文件合并时的顺序很难确定，第二：代码文件内变量和方法命名容易冲突。
+
+#### 2. 模块化
+
+第一个问题，模块文件合并到一起时位置的顺序，简单理解也就是模块代码的执行顺序。
+
+[CommonJS规范](https://www.commonjs.org/specs/modules/1.0/)和[ES Module规范](https://es6.ruanyifeng.com/#docs/module)定义的就是在模块中声明依赖的方式。🌰：
+
+```javascript
+// entry.js
+import { bar } from './bar.js'; // 依赖 ./bar.js 模块
+
+// bar.js
+const foo = require('./foo.js'); // 依赖 ./foo.js 模块
+```
+
+bundler需要从这个入口代码中解析出依赖bar.js，然后再读取bar.js这个代码文件，解析出依赖foo.js代码文件，继续解析其依赖，递归下去，直至没有更多的依赖模块，最终形成一棵模块依赖树。
+
+**依赖解析和管理**便是webpack这个Bundler很重要的一个工作。
+
+> 关于如何从JavaScript代码中解析出这些依赖，可以参考文章：[使用Acorn来解析JavaScript](https://juejin.cn/post/6844903450287800327)
+
+如果只是简单的合并文件，「foo.js」和「bar.js」模块的代码需要放到入口代码的前边。但是webpack不是简单地按照依赖的顺序合并，顺带解决了前边提到的命名冲突的问题。
+
+#### 3. webpack的打包
+
+在已经解析出依赖关系的前提下，webpack会利用JavaScript Function的特性提供一些代码来将各个模块整合到一起，即，将每一个模块包装成一个JS Function，提供一个引用依赖模块的方法，如`__webpack__require__`，这样既可以避免变量相互干扰，又能够有效控制执行顺序。🌰：
+
+```javascript
+// 分别将各个依赖模块的代码用modules的方式组织起来打包成一个文件
+// entry.js
+modules['./entry.js'] = function () {
+  const { bar } = __webpack__require__('./bar.js')
+}
+
+// bar.js
+modules['./bar.js'] = function () {
+  const foo = __webpack__require__('./foo.js')
+}
+
+// foo.js
+modules['./foo.js'] = function () {
+  // ...
+}
+
+// 已经执行的代码模块结果会保存在这里
+const installedModules = {}
+
+function __webpack__require__(id) {
+  // ...
+  // 如果installedModules中有就直接获取
+  // 没有的话就从modules中获取function然后执行，将结果缓存在installedModules中然后返回结果
+}
+```
+
+这种实现方式最大的缺点就是会增大生成的js代码体积，当webpack可以确定代码执行顺序，以及可以用唯一的模块id去调整模块内变量名防止冲突时，这些胶水代码也就没有必要存在了（webpack配置optimization.concatenateModules）。
+
+#### 4. webpack的结构
+
+webpack利用了[tapable](https://github.com/webpack/tapable)这个库来协助实现对于整个构建流程各个步骤的控制。
+
+tapable使用上并不算十分复杂，最主要的功能，就是用来添加各种各样的钩子方法（即Hook）。
+
+webpack基于tapable定义了主要构建流程后，使用tapable这个库添加了各种各样的钩子方法来将webpack扩展至功能十分丰富，同时对外提供了相对强大的扩展性，即plugin的机制。
+
+**webpack工作的主要流程和其中几个重要的概念：**
+
+* Compiler：webpack的运行入口，实例化时定义webpack构建主要流程，同时创建构建时使用的核心对象compilation。
+* Compilation：由Compiler实例化，存储构建过程中各流程使用到的数据，用于控制这些数据的变化
+* Chunk：用于表示chunk的类，即构建流程中的主干，一般情况下一个入口会对应一个chunk，对于构建时需要的chunk对象由Compilation创建后保存管理
+* Module：用于表示代码模块的类，衍生出很多子类用于处理不同的情况，关于代码模块的所有信息都会存在Module实例中，例如`dependencies`记录代码模块的依赖等。
+* Parser：相对复杂的一个部分，基于[acorn](https://github.com/acornjs/acorn)来分析AST语法树，解析出代码模块的依赖
+* Dependency：解析时用于保存代码模块对应的依赖所使用的对象
+* Template：生成最终代码要使用到的代码模板，如上述的function代码就是用对应的Template来生成
+
+**官方定义：**
+
+* compiler对象：代表了完整的webpack环境配置。这个对象在启动webpack时被一次性建立，并配置好所有可操作的设置，包括options、loader和plugin。当在webpack环境中应用一个插件时，插件将收到此compiler对象的引用。可以使用它来访问webpack的主环境。
+* compilation对象：代表了一次资源版本构建。当运行webpack开发环境中间件时，每当检测到一个文件变化，就会创建一个新的compilation，从而生成一组新的编译资源。一个compilation对象表现了当前的模块资源、编译生成资源、变化的文件、以及被跟踪依赖的状态信息。compilation对象也提供了很多关键步骤的回调，以供插件做自定义处理时选择使用。
+
+**webpack运行的大概工作流程**
+
+```
+创建 Compiler ->
+调用 compiler.run 开始构建 ->
+创建 Compilation ->
+基于配置开始创建 Chunk ->
+使用 Parser 从 Chunk 开始解析依赖 ->
+使用 Module 和 Dependency 管理代码模块相互关系 ->
+使用 Template 基于 Compilation 的数据生成结果代码 ->
+```
+
+实现细节可以查阅webpack源码，从webpack基础流程入手：[Compiler Hooks](https://github.com/webpack/webpack/blob/v4.42.0/lib/Compiler.js#L45)
+
+如果想要学习bundler的整个工作流程，可以考虑阅读[rollup](https://github.com/rollup/rollup)的源码，可读性相对更好。
+
+#### 5. webpack的源码
+
+webpack主要的构建处理方法都在`Compilation`中。
+
+Compilation的实现比较复杂，关键的几个部分：
+
+* addEntry和_addModuleChain
+
+  * `addEntry`方法顾名思义，用于把配置的入口加入到构建的任务中去，当解析好webpack配置，准备好开始构建时，便会执行`addEntry`方法，而`addEntry`会调用`_addModuleChain`来为入口文件（入口文件此时等同于第一个依赖）创建一个对应的`Module`实例。
+  * `_addModuleChain`方法，会根据入口文件这第一个依赖的类型创建一个`moduleFactory`，然后再使用这个`moduleFactory`给入口文件创建一个`Module`实例，这个`Module`实例用来管理后续这个入口构建的相关数据信息。
+  * `Module`类的具体实现可以参考源码：[lib/Module.js](https://github.com/webpack/webpack/blob/v4.42.0/lib/Module.js)，这个是基础类，大部分我们构建时使用的代码模块的`Module`实例是[lib/NormalModule.js](https://github.com/webpack/webpack/blob/v4.42.0/lib/NormalModule.js)这个类创建的。
+  * `addEntry`相当于整个构建的起点
+
+* buildModule
+
+  * 当一个`Module`实例被创建后，比较重要的一步，是执行`compilation.buildModule`这个方法，这个方法主要会调用`Module`实例的`build`方法，这个方法主要是创建`Module`实例需要的一些东西，最重要的部分就是调用自身的[runLoaders](https://github.com/webpack/webpack/blob/v4.42.0/lib/NormalModule.js#L295)方法。
+  * `runLoaders`方法是webpack依赖的[loader-runner](https://github.com/webpack/loader-runner)这个类库实现的，比较容易理解，就是执行对应的loaders，将代码源码内容一一交由配置中指定的loader处理后，再把处理的结果保存起来。
+  * webpack的loader就是转换器，loader就是在这个时候发挥作用的。
+  * `Module`实例的`build`方法在执行完对应的loader，处理完模块代码自身的转换后，还有相当重要的一步，是调用[Parser](https://github.com/webpack/webpack/blob/v4.42.0/lib/Parser.js)的实例来解析自身依赖的模块，解析后的结果存放在`module.dependencies`中，首先保存的是依赖的路径，后续会经由`compilation.processModuleDependencies`方法，再来处理各个依赖模块，递归地去建立整个依赖关系树。
+
+* Compilation的钩子
+
+  webpack会使用[tapable](https://github.com/webpack/tapable)给整个构建流程中的各个步骤定义钩子，用于注册事件，然后在特定的步骤执行时触发相应的事件，注册的事件函数便可以调整构建时的上下文数据，或者做额外的处理工作，这就是webpack的plugin机制。
+
+  [lib/webpack.js](https://github.com/webpack/webpack/blob/v4.42.0/lib/webpack.js#L46)有这么一段代码：
+
+  ```javascript
+  if (options.plugins && Array.isArray(options.plugins)) {
+    for (const plugin of options.plugins) {
+      if (typeof plugin === "function") {
+        plugin.call(compiler, compiler);
+      } else {
+        plugin.apply(compiler);
+      }
+    }
+  }
+  ```
+
+  plugin的`apply`方法就是用来给`compiler`实例注册事件钩子函数的，而`compiler`的一些事件钩子中可以获得`compilation`实例的引用，通过引用又可以给`compilation`实例注册事件函数，以此类推，便可以将plugin的能力覆盖到整个webpack构建过程。
+
+  官方文件：[compiler的事件钩子](https://webpack.js.org/api/compiler-hooks/)和[compilation的事件钩子](https://webpack.js.org/api/compilation-hooks/)
+
+* 产出构建结果
+
+  `Template`产出最终构建结果的代码内容。
+
+  * `Template`基础类：[lib/Template.js](https://github.com/webpack/webpack/blob/v4.42.0/lib/Template.js)
+  * 常用的主要`Template`类：[lib/MainTemplate.js](https://github.com/webpack/webpack/blob/v4.42.0/lib/MainTemplate.js)
+  * Compilation中产出构建结果的代码：[compilation.createChunkAssets](https://github.com/webpack/webpack/blob/v4.42.0/lib/Compilation.js#L2111)
+
+#### 6. 小结
+
+* 模块bundler的工作原理：依赖解析和管理，将多个代码模块打包
+* webpack在bundler的基础上如何去增强自己的扩展性：利用tapable库来实现对整个构建流程各个步骤的控制，可以添加各种各样的钩子方法，方便用户添加自定义的额外处理
+* webpack主要构建流程中比较重要的几个概念：Compiler、Compilation、Chunk、Module、Parser、Dependency、Template
+* webpack基础构建流程的源码结构：addEntry、__addModuleChain、build、runLoaders、调用Parser的实例解析自身依赖的模块
+
+官网文档api中的[PLUGIN部分](https://webpack.js.org/api/plugins)有助于梳理和理解webpack主要的执行流程，也有助于更好地学习webpack plugin的开发。
+
+#### 7. 实践
+
+**在webpack中打断点调试：**
+
+1. 添加npm script
+
+   ```json
+   {
+     "scripts": {
+       "debug": "node --inspect-brk ./node_modules/webpack/bin/webpack.js --progress"
+     }
+   }
+   ```
+
+2. 在node_modules/webpack/lib/webpack.js和webpack.config.js中添加断点debugger
+
+3. 在Chrome中打开`chrome://inspect/#devices` 并点击链接 `Open dedicated DevTools for Node`
+
+4. 执行脚本
+
+   ```shell
+   npm run debug
+   ```
+
+5. 更多调试说明: https://nodejs.org/en/docs/guides/debugging-getting-started/
+
+**使用[acorn]编写一个简单的解析模块依赖的工具：**
+
