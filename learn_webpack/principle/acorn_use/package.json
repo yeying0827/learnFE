@@ -1,0 +1,14 @@
+{
+  "name": "acorn_use",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/entry.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "acorn": "^8.7.1"
+  }
+}
