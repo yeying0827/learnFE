@@ -2140,6 +2140,8 @@ webpack基于tapable定义了主要构建流程后，使用tapable这个库添�
 
 如果想要学习bundler的整个工作流程，可以考虑阅读[rollup](https://github.com/rollup/rollup)的源码，可读性相对更好。
 
+概念区分文章：[Module、Chunk、Bundle](https://www.jianshu.com/p/8f9dfccf0c6b)，
+
 #### 5. webpack的源码
 
 webpack主要的构建处理方法都在`Compilation`中。
@@ -2201,7 +2203,45 @@ Compilation的实现比较复杂，关键的几个部分：
 
 #### 7. 实践
 
-**在webpack中打断点调试：**
+**使用nodejs简单合并代码：**[参考文章](https://wenku.baidu.com/view/d3e72f26a5c30c22590102020740be1e640ecc73.html)
+
+1. 编写两个简单JS文件`src/A.js, src/B.js`
+
+2. 编写合并文件：
+
+   ```javascript
+   // Combine.js
+   /*
+   简单合并代码
+   */
+   
+   const { readFileSync, open, close, writeFile } = require('fs');
+   const fs = require('fs');
+   const path = require('path');
+   
+   let content = '/* 合并A.js和B.js */\n';
+   const read = (filepath) => {
+       const data = readFileSync(filepath);
+       content += data.toString();
+   }
+   
+   const write = () => {
+       writeFile(path.resolve(__dirname, 'C.js'), content, (err) => {
+           if (err) throw err;
+           console.log('The file has been saved!');
+       });
+   }
+   
+   const pagesRoot = path.resolve(__dirname, './src');
+   fs.readdirSync(pagesRoot).forEach((file) => {
+       read(path.resolve(pagesRoot, file))
+   });
+   write();
+   ```
+
+3. 运行`Combine.js`，生成`C.js`文件
+
+**在webpack中打断点调试：**[参考文章1](http://t.zoukankan.com/h2zZhou-p-12973690.html), [文章2](https://segmentfault.com/a/1190000023734819)
 
 1. 添加npm script
 
@@ -2225,5 +2265,132 @@ Compilation的实现比较复杂，关键的几个部分：
 
 5. 更多调试说明: https://nodejs.org/en/docs/guides/debugging-getting-started/
 
-**使用[acorn]编写一个简单的解析模块依赖的工具：**
+**使用[acorn]编写一个简单的解析模块依赖的工具：**[参考文章](https://juejin.cn/post/6844903450287800327)
+
+1. 安装acorn `npm install acron`
+
+2. 编写测试文件
+
+   ```javascript
+   // src/entry.js
+   import Bar from './bar.js';
+   import { bar, bar1 } from './bar.js';
+   
+   Bar.bar('buffer');
+   bar('buffer');
+   
+   // src/bar.js
+   const foo = require('./foo');
+   
+   export const bar = (name) => {
+       console.log('===================bar======================');
+       foo(name);
+       console.log('===================end======================');
+   }
+   
+   export const bar1 = () => {
+       console.log('===================bar1==================');
+   }
+   
+   export default {
+       bar
+   }
+   
+   // src/foo.js
+   module.exports = function (name) {
+       console.log(`test acorn, your arg is: ${name}`);
+   }
+   ```
+
+3. 编写编译文件
+
+   ```javascript
+   // compile.js
+   const { readFileSync } = require('fs');
+   
+   const acorn = require('acorn');
+   
+   const data = readFileSync('./src/entry.js');
+   const data1 = readFileSync('./src/bar.js');
+   
+   function walkNode(node, callback) {
+       callback(node);
+   
+       Object.keys(node).forEach(key => {
+           const item = node[key];
+           if (Array.isArray(item)) {
+               item.forEach(sub => {
+                   sub.type && walkNode(sub, callback);
+               })
+           }
+   
+           item && item.type && walkNode(item, callback);
+       })
+   }
+   
+   function parseDependencies(str) {
+       const ast = acorn.parse(str, {
+           sourceType: "module",
+           ranges: true
+       });
+       const resource = []; // 依赖列表
+   
+       walkNode(ast, node => {
+           const callee = node.callee;
+           const args = node.arguments;
+   
+           if (
+               node.type === 'CallExpression' &&
+               callee.type === 'Identifier' &&
+               callee.name === 'require' &&
+               args.length === 1 &&
+               args[0].type === 'Literal'
+           ) {
+               const args = node.arguments;
+   
+               resource.push({
+                   string: str.substring(node.start, node.end),
+                   path: args[0].value,
+                   start: node.start,
+                   end: node.end
+               });
+           }
+   
+           if (
+               node.type === 'ImportDeclaration' &&
+               node.source.type === 'Literal'
+           ) {
+               const usages = node.specifiers;
+   
+               resource.push({
+                   string: str.substring(node.start, node.end),
+                   path: node.source.value,
+                   start: node.start,
+                   end: node.end,
+                   usage: usages.map(item => {
+                       if (item.type === 'ImportDefaultSpecifier') {
+                           return item.local.name;
+                       } else {
+                           return {
+                               imported: item.imported.name,
+                               local: item.local.name
+                           }
+                       }
+                   })
+               });
+           }
+       });
+   
+       return resource;
+   }
+   
+   console.log(parseDependencies(data.toString()));
+   console.log(parseDependencies(data1.toString()));
+   ```
+
+4. 运行`compile.js`文件，可以看到打印出来的依赖数组
+
+
+
+### 提升构建速度
 
