@@ -20,7 +20,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "build:img"
+      "pre-commit": "npm run build:img"
     }
   },
   "author": "",
