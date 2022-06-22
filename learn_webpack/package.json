@@ -12,14 +12,14 @@
     "serve:pro": "webpack-dev-server --config webpack.production.js",
     "serve:dev": "webpack-dev-server --config webpack.development.js",
     "serve:test": "proxy=test webpack-dev-server --config webpack.test.js",
-    "build:img": "npm-run-all --parallel build:img:*",
+    "build:img1": "npm-run-all --parallel build:img:*",
     "build:img:jpg": "imagemin src/assets/*.{jpg,jpeg,JPG} --plugin.mozjpeg.quality=65 --out-dir=src/assets",
     "build:img:png": "imagemin src/assets/*.png --plugin.pngquant.quality={0.65,0.9} --plugin.optipng.enabled=false --out-dir=src/assets",
     "build:img:webp": "imagemin src/assets/*.webp --plugin.webp.quality=75 --out-dir=src/assets",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "pre-commit": {
-    "run": "build:img"
+    "run": "build:img1"
   },
   "author": "",
   "license": "ISC",
