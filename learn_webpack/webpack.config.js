@@ -162,7 +162,7 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
                 use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'] // 需要保证loader的顺序，从右到左，先解析css内容，再包装成style标签的内容，最后插入到head中
             },
             {
-                test: /\.jsx?/,
+                test: /\.jsx?/, // 匹配文件路径的正则表达式，通常我们都是匹配文件类型后缀
                 include: path.resolve(__dirname, 'src'), // 指定哪些路径下的文件需要经过loader处理
                 exclude: /node_modules/,
                 use: {
@@ -187,30 +187,30 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
                         maxSize: 4 * 1024 // 4kb
                     }
                 },
-                use: [
-                    {
-                        loader: 'image-webpack-loader',
-                        options: {
-                            mozjpeg: { // 压缩jpeg的配置
-                                progressive: true,
-                                quality: 65
-                            },
-                            optipng: { // 使用imagemin-optipng压缩png，enable false为关闭
-                                enabled: false
-                            },
-                            pngquant: { // 使用imagemin-pngquant压缩png
-                                quality: [0.65, 0.9],
-                                speed: 4
-                            },
-                            gifsicle: { // 压缩gif的配置
-                                interlaced: false,
-                            },
-                            webp: { // 开启webp，会把jpg和png图片压缩为webp格式
-                                quality: 75
-                            }
-                        }
-                    }
-                ]
+                // use: [
+                //     {
+                //         loader: 'image-webpack-loader',
+                //         options: {
+                //             mozjpeg: { // 压缩jpeg的配置
+                //                 progressive: true,
+                //                 quality: 65
+                //             },
+                //             optipng: { // 使用imagemin-optipng压缩png，enable false为关闭
+                //                 enabled: false
+                //             },
+                //             pngquant: { // 使用imagemin-pngquant压缩png
+                //                 quality: [0.65, 0.9],
+                //                 speed: 4
+                //             },
+                //             gifsicle: { // 压缩gif的配置
+                //                 interlaced: false,
+                //             },
+                //             webp: { // 开启webp，会把jpg和png图片压缩为webp格式
+                //                 quality: 75
+                //             }
+                //         }
+                //     }
+                // ]
             },
             {
                 test: /\.html$/i,
@@ -227,7 +227,7 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
             ]
         }),
         new MiniCssExtractPlugin({
-            filename: '[name]-[fullhash].css' // 这里也可以使用hash，默认是main.css
+            filename: '[name]-[contenthash:8].css' // 这里也可以使用hash,fullhash，默认是main.css
         }), // 将css单独抽离的plugin
         new HtmlWebpackPlugin({
             // inject: true,
@@ -251,16 +251,16 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
             },
             DLL_PATH: JSON.stringify('/public/moment.dll.js')
         }),
-        new webpack.IgnorePlugin({resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/}), // 忽略掉i18n代码文件
+        // new webpack.IgnorePlugin({resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/}), // 忽略掉i18n代码文件
         // new BundleAnalyzerPlugin(), // 构建完成后在浏览器中可以查看分析结果
         new ProgressPlugin((percentage, message, ...args) =>  {
             console.log(percentage, message, ...args);
         }),
-        /*new webpack.DllReferencePlugin({
+        new webpack.DllReferencePlugin({
             context: __dirname,
             // 描述 moment 动态链接库的文件内容
             manifest: require('./dist/public/moment.manifest.json'),
-        })*/
+        }),
         new WebpackManifestPlugin({})
     ]
 }}

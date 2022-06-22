@@ -8,7 +8,7 @@ module.exports = {
     output: {
         filename: '[name].dll.js',
         path: path.resolve(__dirname, 'dist/public'),
-        library: '[name]_[fullhash]'
+        library: '[name]_[fullhash]' // 打包后对外暴露的类库名称
     },
     plugins: [
         new webpack.DllPlugin({
