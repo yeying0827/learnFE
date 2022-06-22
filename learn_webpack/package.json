@@ -18,9 +18,9 @@
     "build:img:webp": "imagemin src/assets/*.webp --plugin.webp.quality=75 --out-dir=src/assets",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "pre-commit": [
-    "build:img"
-  ],
+  "pre-commit": {
+    "run": "build:img"
+  },
   "author": "",
   "license": "ISC",
   "devDependencies": {
