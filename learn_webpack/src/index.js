@@ -4,12 +4,16 @@ import './index.css';
 import './style.css';
 // import styles from './index.module.css'; // module css 会影响应用更新时HMR执行的回调调用
 import './main.less';
+import './test.scss';
 import {utils} from "utils";
 import html from './file.html'
 import {square, cube} from './utils/math'
 import {forEach, /*includes*/} from 'lodash-es';
+import testMd from './test.md';
 
 document.getElementById('file').innerHTML = html;
+
+console.log(testMd);
 
 utils();
 

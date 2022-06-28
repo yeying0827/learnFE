@@ -35,7 +35,11 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
     },
     resolveLoader: { // 仅用于解析webpack的loader包
         extensions: ['.js', '.json'],
-        mainFields: ['loader', 'main']
+        mainFields: ['loader', 'main'],
+        modules: [
+            'node_modules',
+            path.resolve(__dirname, 'loaders')
+        ]
     },
 
     entry: './src/index.js', // 指定构建入口文件
@@ -146,21 +150,23 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
         noParse: /jquery|loash/, // 不需要编译处理的模块
         rules: [
             {
-                test: /\.less$/,
+                test: /\.(less|scss|css)$/,
                 use: [
                     MiniCssExtractPlugin.loader,
                     'css-loader',
                     'postcss-loader',
-                    'less-loader'
+                    // 'less-loader'
+                    // path.resolve('./loader/less.js')
+                    'less-local-loader'
                 ]
             },
-            {
-                test: /\.css$/i, // 匹配文件的正则表达式
-                include: [
-                    path.resolve(__dirname, 'src')
-                ],
-                use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'] // 需要保证loader的顺序，从右到左，先解析css内容，再包装成style标签的内容，最后插入到head中
-            },
+            // {
+            //     test: /\.css$/i, // 匹配文件的正则表达式
+            //     include: [
+            //         path.resolve(__dirname, 'src')
+            //     ],
+            //     use: [MiniCssExtractPlugin.loader, 'css-loader', 'postcss-loader'] // 需要保证loader的顺序，从右到左，先解析css内容，再包装成style标签的内容，最后插入到head中
+            // },
             {
                 test: /\.jsx?/, // 匹配文件路径的正则表达式，通常我们都是匹配文件类型后缀
                 include: path.resolve(__dirname, 'src'), // 指定哪些路径下的文件需要经过loader处理
@@ -216,6 +222,19 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
                 test: /\.html$/i,
                 include: path.resolve(__dirname, 'src'),
                 use: ['html-loader']
+            },
+            {
+                test: /\.md/,
+                include: path.resolve(__dirname, 'src'),
+                use: [
+                    {
+                        // loader: path.resolve('./loader/index.js'),
+                        // options: {
+                        //     test: 'test option', // [1, 2, 3]
+                        // }
+                        loader: 'markdown-local-loader'
+                    }
+                ]
             }
         ]
     },

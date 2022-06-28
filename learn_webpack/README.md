@@ -2580,5 +2580,300 @@ webpack5针对性能优化还有持久化缓存方案推出，让每一次的构
   * 缺点：三方服务可能不稳定，连接不上，导致线上应用打开异常
   * 也可用OSS服务托管资源
 
+### 开发loader
 
+场景：有构建需求是需要处理特殊的文件类型，或者社区loader出现某些问题并不适合当前的开发项目
+
+#### 1. 准备工作
+
+在开始开发之前，先准备好调试loader的开发环境。
+
+可以在webpack配置中直接使用路径来指定使用本地的loader，或者在loader路径解析中加入本地开发loader的目录。🌰：
+
+```javascript
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        loader: path.resolve('./loader/index.js'), // 使用本地的 ./loader/index.js作为loader
+      }
+    ]
+  },
+  
+  // 在 resolveLoader 中添加本地开发的loaders存放路径
+  // 如果同时需要开发多个loader，那么这个方式可能会更加适合，但是loader需要包装成package，即需要package.json文件
+  resolveLoader: {
+    modules: [
+      'node_modules',
+      path.resolve(__dirname, 'loaders')
+    ],
+  },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modules/,
+        use: [
+          'your-loader' // 匹配package.json中的包名称
+        ]
+      }
+    ]
+  }
+}
+```
+
+如果熟悉Node的话，也可以使用`npm link`的方式来开发和调试，可以参考npm的官方文档[npm-link](https://docs.npmjs.com/cli/v8/commands/npm-link)
+
+#### 2. loader是一个function
+
+🌰：处理.md后缀的Markdown文件
+
+```javascript
+/*
+* loader/index.js文件
+*/
+const marked = require('marked');
+const loaderUtils = require('loader-utils');
+
+module.exports = function (markdown) {
+  // 使用`loaderUtils`来获取loader的配置项
+  // `this`是构建运行时的上下文信息
+  const options = loaderUtils.getOptions(this);
+  
+  this.cacheable();
+  
+  // 把配置项直接传递给marked
+  marked.setOptions(options);
+  
+  // 使用marked处理Markdown字符串，然后以JS Module的方式导出，返回最终的JS代码
+  return `export default\`${marked.marked(markdown)}\`;`;
+}
+```
+
+这是[markdown-loader](https://github.com/peerigon/markdown-loader)的大致实现，原本markdown-loader依赖于[html-loader](https://github.com/webpack-contrib/html-loader)，这里稍改了一下，返回了一个JS字符串，便于理解简单的loader。
+
+markdown-loader本身仅只是一个函数，接收模块代码的内容，然后返回代码内容转化后的结果。webpack loader的本质就是这样一个函数。🌰：
+
+markdown文件内容：
+
+```mar
+# hello world
+```
+
+loader将模块代码转化后的结果：
+
+```javascript
+export default `<h1 id="hello-world">hello world</h1>`;
+```
+
+> export default后边需要用``来包裹字符串，因为markdown解析出来的结果有可能是多行的字符串。
+
+例子中用到的[loader-utils](https://github.com/webpack/loader-utils)是webpack官方提供的一个工具库，提供loader处理时需要用到的一些工具方法，例如用来解析上下文loader配置项的`getOptions`。
+
+另外还有一个用于校验loader配置项的工具库：[schema-utils](https://github.com/webpack/schema-utils)。使用🌰：
+
+```javascript
+const validateOptions = require('schema-utils');
+
+const schema = {
+  type: 'object',
+  properties: {
+    test: {
+      type: 'string'
+    }
+  }
+};
+
+module.exports = function (markdown) {
+  const options = getOptions(this);
+  
+  // 执行校验，可以在构建过程中发现配置项错误
+  validateOptions(schema, options, 'Example Loader');
+  
+  // ...
+}
+```
+
+更多内容可以参考官方文档。
+
+[marked](https://github.com/markedjs/marked)是一个用于解析Markdown的类库，可以把Markdown转为HTML，markdown-loader的核心功能就是用它来实现的。基本上，webpack loader都是基于一个实现核心功能的类库来开发的，如[sass-loader](https://github.com/webpack-contrib/sass-loader)是基于[node-sass](https://github.com/sass/node-sass)实现的。
+
+#### 3. 复杂一点的loader
+
+1. 首先，loader函数接收的参数有三个：`content`，`map`，`meta`。`content`是模块内容，可以是字符串或buffer，如图片或字体等文件；`map`则是sourcemap对象，`meta`是其他的一些元数据。
+
+   loader函数如果只返回一个值，这个值是当成content去处理，如果需要返回sourcemap对象或者meta数据，甚至是抛出一个loader异常给webpack时，需要使用`this.callback(err, content, map, meta)`来传递这些数据。
+
+2. 把多个loader串起来一起使用，官网的一段说明：
+
+   * 最后的loader最早调用，传入原始的资源内容（可能是代码，或二进制文件，用buffer处理）
+
+   * 第一个loader最后调用，期望返回是JS代码和（可选的）sourcemap对象
+
+   * 中间的loader执行时，传入的是上个loader执行的结果
+
+官方的markdown-loader返回的是html字符串，需要再次传递给html-loader才能使用。本例中实现的loader可以作为第一个loader来使用，因为返回的是一个JS模块的代码。
+
+3. loader中的异步处理。
+
+   有一些loader在执行过程中可能依赖于外部I/O的结果，导致它必须使用异步的方式来处理，这个使用需要在loader执行时使用`const callback = this.async()`来标识该loader是异步处理的，然后使用`callback(null, data, map, meta)`来返回loader处理结果。🌰：
+
+   ```javascript
+   const less = require('less');
+   
+   module.exports = function(content, map, meta) {
+     const callback = this.async();
+     
+     // less的编译调用是异步的
+     less.render(content, { sourceMap: {} }, (error, output) => {
+       if (error) callback(error); // 抛出异常
+       
+       // 正常返回
+       callback(null, output.css, output.map, meta);
+     })
+   }
+   ```
+
+#### 4. loader interface
+
+loader function关联的`this`除了`this.async`、`this.cacheable`，还有很多其他的接口，官方称之为[loader interface](https://webpack.js.org/api/loaders/)。[less-loader](https://github.com/webpack-contrib/less-loader)源码里一个🌰：
+
+```javascript
+function processResult(loaderContext, resultPromise, callback) {
+  resultPromise
+  	.then(
+  		({css, map, imports}) => {
+        // @1
+        imports.forEach(loaderContext.addDependency, loaderContext);
+        return {
+          // Removing the sourceMappingURL comment.
+          // See removeSourceMappingURL.js for the reasoning behind this.
+          css: removeSourceMappingURL(css),
+          map: typeof map === 'string' ? JSON.parse(map) : map
+        };
+      },
+    	(lessError) => {
+        if (lessError.filename) {
+          // @2
+          loaderContext.addDependency(lessError.filename);
+        }
+        throw formatLessError(lessError);
+      }
+  	)
+    .then(
+    	({ css, map }) => {
+				callback(null, css, map);
+    	},
+    	callback
+  	);
+}
+```
+
+主要关注`loaderContext.addDependency()`的使用，`loaderContext`即前边提到的loader function里的this，通过它来访问webpack提供的loader api。`addDependency`方法的作用是：将对应的文件作为模块的依赖，让webpack去监测它的变化。当依赖变化时，模块则需要重新编译。上述两个使用`addDependency`的地方：
+
+* @1 将less编译中解析出来的所有import语句中依赖的文件都使用`addDependency`方法添加到webpack的监测中，确保它们被修改时可以正确编译
+* @2 将编译异常的文件使用`addDependency`方法添加到webpack监测中，确保文件内容被修改后，可以尝试再次编译
+
+#### 5. Pitching
+
+在一个匹配规则中应用多个loader，处理顺序是从右到左，而webpack给loader提供了pitch机制，可以让你在开发loader中指定方法是从左到右来执行的。🌰：
+
+```javascript
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        // ...
+        use: ['a-loader', 'b-loader', 'c-loader']
+      }
+    ]
+  }
+};
+```
+
+算上pitch方法的话，webpack中处理loader的执行顺序会是这样的：
+
+```text
+-> a-loader pitch
+	-> b-loader pitch
+		-> c-loader pitch
+		-> c-loader 执行
+	-> b-loader 执行
+-> a-loader 执行
+```
+
+看起来有点像DOM event的事件捕获和事件冒泡。
+
+如何在loader function里写pitch方法：
+
+```javascript
+function yourLoaderFunction() {
+  // ...
+}
+
+yourLoaderFunction.pitch = function(remainingRequest, precedingRequest, data) {
+  // ...
+  data.value = 42; // `data`中挂载的数据在后边`loader`执行时可以从`loader`的`this.data`中访问到
+}
+```
+
+loader的pitch机制可以让某些不依赖前边loader执行结果而只关注原始基础数据的function可以更好地执行，同时让loader可以通过pitch传输的data来获知整个loader链条的情况，并且pitch可以跳过后续loader的执行，如：
+
+```javascript
+yourLoaderFunction.pitch = function(remainingRequest, precedingRequest, data) {
+  // ...
+  return `module.exports = require(' + JSON.stringify('-!' + remainingRequest) + ');`;
+  // 返回解析结果用于跳过后续`loader`的执行
+}
+```
+
+如果上个🌰中的b-loader使用了pitch的`return`来返回一个结果，那么上边的loader执行顺序会变更为：
+
+```text
+-> a-loader pitch
+	-> b-loader pitch 返回模块结果
+-> a-loader 执行
+```
+
+则c-loader会被跳过。（b-loader还执行吗？c-loader是否可以干脆不加？）
+
+webpack官方介绍如何开发一个loader的文章：[writing a loader](https://webpack.js.org/contribute/writing-a-loader/)，尤其注意[Guidelines](https://webpack.js.org/contribute/writing-a-loader/#guidelines)部分
+
+使用loader路径解析的方式配置。🌰：
+
+```javascript
+// webpack.config.js
+
+module.exports = {
+  // ...
+  resolveLoader: { // 仅用于解析webpack的loader包
+    extensions: ['.js', '.json'],
+    mainFields: ['loader', 'main'],
+    modules: [
+      'node_modules',
+      path.resolve(__dirname, 'loaders') // 配置查询依赖的路径
+    ]
+  },
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.md/,
+        include: path.resolve(__dirname, 'src'),
+        use: [
+          {
+            loader: 'markdown-local-loader'
+          }
+        ]
+      }
+    ]
+  }
+};
+
+// src/loaders/markdown-local-loader/index.js
+```
 
