@@ -1,0 +1,26 @@
+assets by status 52.4 KiB [cached] 2 assets
+assets by status 163 KiB [compared for emit]
+  assets by path *.js 161 KiB
+    asset main.js 118 KiB [compared for emit] [minimized] (name: main) 1 related asset
+    asset includes.js 42.9 KiB [compared for emit] [minimized] (name: includes) (id hint: vendors) 1 related asset
+  asset index.html 1.14 KiB [compared for emit]
+  asset public/index.html 333 bytes [compared for emit] [from: src/public/index.html] [copied]
+  asset manifest.json 243 bytes [compared for emit]
+  asset filelist.md 184 bytes [compared for emit]
+Entrypoint main 121 KiB (49.4 KiB) = main-6d83038d.css 3 KiB main.js 118 KiB 1 auxiliary asset
+orphan modules 583 KiB (javascript) 49.4 KiB (asset) 1.11 KiB (runtime) [orphan] 603 modules
+runtime modules 10.2 KiB 24 modules
+built modules 40.3 KiB (javascript) 1.53 KiB (css/mini-extract) [built]
+  modules by path ./node_modules/lodash-es/*.js 36.5 KiB
+    ./node_modules/lodash-es/forEach.js 1.32 KiB [built] [code generated]
+    ./node_modules/lodash-es/includes.js 1.73 KiB [built] [code generated]
+    ./node_modules/lodash-es/isArray.js 486 bytes [built] [code generated]
+    + 49 modules
+  modules by path ./src/ 3.65 KiB (javascript) 1.53 KiB (css/mini-extract)
+    javascript modules 3.65 KiB 10 modules
+    css modules 1.53 KiB
+      modules by path ./src/*.css 154 bytes 2 modules
+      + 2 modules
+  delegated ./node_modules/moment/moment.js from dll-reference moment_b670b7eda803a74663a7 42 bytes [built] [code generated]
+  external "moment_b670b7eda803a74663a7" 42 bytes [built] [code generated]
+webpack 5.72.1 compiled successfully in 2354 ms
