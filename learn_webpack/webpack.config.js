@@ -9,6 +9,8 @@ const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPl
 const ProgressPlugin = require('progress-webpack-plugin');
 const mock = require('./mock');
 const { WebpackManifestPlugin } = require('webpack-manifest-plugin');
+const FileListPlugin = require('./plugins/FileListPlugin');
+const FlowPlugin = require('./plugins/FlowPlugin');
 
 // src/pages 目录为页面入口的根目录
 const pagesRoot = path.resolve(__dirname, './src/pages');
@@ -153,6 +155,7 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
                 test: /\.(less|scss|css)$/,
                 use: [
                     MiniCssExtractPlugin.loader,
+                    // 'style-loader',
                     'css-loader',
                     'postcss-loader',
                     // 'less-loader'
@@ -280,6 +283,11 @@ module.exports = (env, argv) => {console.log('env.production', env.production); 
             // 描述 moment 动态链接库的文件内容
             manifest: require('./dist/public/moment.manifest.json'),
         }),
-        new WebpackManifestPlugin({})
+        new WebpackManifestPlugin({}),
+        new FileListPlugin({
+            path: path.resolve(__dirname, 'backup'),
+            filename: 'build-result1'
+        }), // 实例化这个插件
+        new FlowPlugin()
     ]
 }}

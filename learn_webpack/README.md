@@ -2877,3 +2877,203 @@ module.exports = {
 // src/loaders/markdown-local-loader/index.js
 ```
 
+[关于pitch的文档](https://webpack.js.org/api/loaders/#pitching-loader)
+
+[node-sass](https://github.com/sass/node-sass)
+
+
+
+### 开发plugin
+
+webpack强大扩展性的基础就是它的插件机制。
+
+#### 1. 一个简单的plugin
+
+plugin的实现可以是一个类，使用时传入相关配置来创建一个**实例**，然后放到配置的`plugins`字段中（数组中？），plugin实例中最重要的方法是`apply`，该方法在webpack compiler安装插件时会被调用一次，`apply`接收webpack compiler对象实例的引用，我们可以在compiler对象实例上注册各种事件钩子函数，来影响webpack的所有构建流程，以便完成更多其他构建任务。
+
+> 事件钩子可以理解为当webpack运行中执行到某个钩子的状态时，便会触发注册的事件，即发布订阅模式。（类似event的创建和触发？）
+
+🌰：一个创建内容是webpack构建文件列表的Markdown文件的plugin。
+
+```javascript
+// src/plugin/FileListPlugin.js
+class FileListPlugin {
+    constructor(options) {
+        // 读取plugin实例化时传入的配置
+    }
+
+    apply(compiler) {
+        // 在compiler的emit hook中注册一个方法，当webpack执行到该阶段时会调用这个方法
+        compiler.hooks.emit.tap('FileListPlugin', (compilation) => {
+            // 给生成的Markdown文件创建一个简单的标题
+            var filelist = 'In this build:\n\n';
+
+            // 遍历所有编译后的资源，每一个文件添加一行说明
+            for(var filename in compilation.assets) {
+                filelist += ('- ' + filename + '\n');
+            }
+
+            // 将列表作为一个新的文件资源插入到webpack构建结果中
+            compilation.assets['filelist.md'] = {
+                source: function () {
+                    return filelist;
+                },
+                size: function () {
+                    return filelist.length;
+                }
+            }
+        });
+    }
+}
+
+module.exports = FileListPlugin;
+```
+
+#### 2. 调试plugin
+
+本地开发和调试，只需要创建一个js代码文件，该文件对外暴露一个类，然后在webpack配置文件中引用这个文件，运行webpack构建查看结果即可。
+
+```javascript
+// webpack.config.js
+const FileListPlugin = require('./plugins/FileListPlugin');
+
+module.exports = {
+  // ...
+  plugins: [
+    new FileListPlugin() // 实例化这个插件
+  ]
+};
+```
+
+webpack是基于Node.js开发的，所以plugin的调试和调试Node.js代码并无两样，使用`console`来打印相关信息，复杂一点的使用断点，或者利用编辑器提供的功能。
+
+#### 3. hooks
+
+开发plugin时，最重要的就是了解和使用webpack提供的hooks，可以查阅官方文档中提供的事件钩子列表：[compiler hooks](https://webpack.js.org/api/compiler-hooks/)和[compilation hooks](https://webpack.js.org/api/compilation-hooks/)。
+
+或者查看源码：[compiler hooks](https://github.com/webpack/webpack/blob/v4.42.1/lib/Compiler.js#L45)和[compilation hooks](https://github.com/webpack/webpack/blob/v4.42.1/lib/Compilation.js#L250)。
+
+webpack中有相当多的事件钩子，基本覆盖了webpack构建流程中的每一个步骤，可以在这些步骤中注册自己的处理函数，来添加额外的功能，这就是webpack提供的plugin扩展。
+
+在源码中可以看到事件钩子是这样声明的：
+
+```javascript
+this.hooks = {
+  shouldEmit: new SyncBailHook(["compilation"]), // 这里声明的事件钩子函数接收的参数是compilation
+  done: new AsyncSeriesHook(["stats"]), // 这里接收的参数是stats，以此类推
+  additionalPass: new AsncSeriesHook([]),
+  beforeRun: new AsyncSeriesHook(["compilation"]),
+  run: new AsyncSeriesHook(["compilation"]),
+  emit: new AsyncSeriesHook(["compilation"]),
+  afterEmit: new AsyncSeriesHook(["compilation"]),
+  thisCompilation: new SyncHook(["compilation", "params"]),
+  // ...
+};
+```
+
+可以看到各个事件钩子函数接收的参数是什么，而且事件钩子会有不同的类型，如`SyncBailHook`，`AsyncSeriesHook`，`SyncHook`等。
+
+#### 4. hooks类型
+
+根据名称可以区分出是同步还是异步的。
+
+对于同步的事件钩子来说，注册事件的方法只有`tap`可用，如`shouldEmit`应该这样来注册事件函数：
+
+```javascript
+apply(compiler) {
+  compiler.hooks.shouldEmit.tap('PluginName', (compilation) => { /* ... */ })
+}
+```
+
+异步的事件钩子，可以使用`tapPromise`或者`tapAsync`来注册事件函数，`tapPromise`要求方法返回`Promise`以便处理异步，而`tapAync`则是需要用`callback`来返回结果，🌰：
+
+```javascript
+compiler.hooks.done.tapPromise('PluginName', (stats) => {
+  // 返回promise
+  return new Promise((resolve, reject) => {
+    // 例子是写一个记录stats的文件
+    fs.writeFile('path/to/file', stats.toJson(), (err) => err ? reject(err): resolve());
+  })
+});
+
+// 或者
+compiler.hooks.done.tapAsync('PluginName', (stats, callback) => {
+  // 使用callback来返回结果
+  fs.writeFile('path/to/file', stats.toString(), (err) => callback(err));
+});
+
+// 如果插件处理中没有异步操作要求的话，也可以用同步的方式
+compiler.hooks.done.tap('PluginName', (stats, callback) => {
+  callback(fs.writeFileSync('path/to/file', stats.toString());
+});
+```
+
+关于webpack hooks底层的实现，都是基于[tapable](https://github.com/webpack/tapable/)这个库，这个工具库提供的钩子类型不止上述几种，多样化的钩子类型主要是为了能够覆盖多种使用场景：
+
+* 连续地执行注册的事件函数
+* 并行地执行
+* 一个接一个地执行，从前边的事件函数获取输入，即瀑布流的方式
+* 异步地执行
+* 在允许时停止执行，一旦一个方法返回了一个非`undefined`的值，就跳出执行流
+
+除了同步和异步的区别，参考使用场景以及官方文档[Plugin API](https://webpack.js.org/api/plugins/#tapable)，可以进一步将事件钩子类型做一个区分：
+
+* 名称带有`parallel`的，注册的事件函数会并行调用，如：
+  * AsyncParallelHook
+  * AsyncParallelBailHook
+* 名称带有`bail`的，注册的事件函数会被顺序调用，直至一个处理方法有返回值（ParallelBail的事件函数则会并行调用，第一个返回值会被使用），如：
+  * SyncBailHook
+  * AsyncParallelBailHook
+  * AsyncSeriesBailHook
+* 名称带有`waterfall`的，每个注册的事件函数，会将上一个方法的返回结果作为输入参数，如：
+  * SyncWaterfallHook
+  * AsyncSeriesWaterfallHook
+
+通过名称可以看出，有一些类型是可以结合到一起的，如`AsyncParallelBailHook，这样就具备了更加多样化的特性。
+
+#### 5. Compiler和Compilation
+
+hooks基础类型是开发plugin的基石，而webpack的compiler和compilation提供的各种hooks和api是开发plugin所必不可少的材料。
+
+* compiler提供的hooks
+* compilation提供的hooks
+* compilation对象提供的api：[compilation api](https://webpack.js.org/api/compilation-object/)
+
+官方提供的生命周期hooks基本是有序的，从中可以窥探webpack的整体构建过程。
+
+🌰：（介绍关键环节）
+
+```javascript
+// src/plugins/FlowPlugin.js
+class FlowPlugin {}
+
+module.exports = FlowPlugin;
+```
+
+通过compiler和compilation的生命周期hooks，可以更好地深入了解webpack的整个构建工作是如何进行的。
+
+官方文档提供的几个基础的开发plugin应用的例子：[plugin-patterns](https://webpack.js.org/contribute/plugin-patterns/)。
+
+[html-webpack-plugin源码](https://github.com/jantimon/html-webpack-plugin/blob/main/index.js#L268)
+
+#### 6. 实践
+
+实现一个plugin输出构建时模块的依赖关系
+
+
+
+### 总结
+
+#### webpack5一些重大变化
+
+* 移除了webpack声明的废弃项
+* 移除Node.js的自动polyfill，因为一些Node模块在Browser的实现会使得bundle比较大
+* 更好的tree-shaking
+* 持久化的本地缓存机制，进一步优化webpack整体的构建速度
+
+[官方changelog](https://github.com/webpack/changelog-v5)
+
+[webpack 5 project](https://github.com/webpack/webpack/projects/5)
+
+[webpack node api](https://webpack.javascriptc.com/api/node/)
+
