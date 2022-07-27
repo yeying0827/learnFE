@@ -2560,10 +2560,10 @@ Compilation的实现比较复杂，关键的几个部分：
 
 webpack4.0版本做了很多关于提升构建性能的工作，比较重要的改进有几个：
 
-* [AST](https://zh.wikipedia.org/zh-hans/%E6%8A%BD%E8%B1%A1%E8%AA%9E%E6%B3%95%E6%A8%B9)可以从loader直接传递给webpack，避免额外的解析，优化细节可以看这个[PR](https://github.com/webpack/webpack/pull/5925)
+* [AST](https://zh.wikipedia.org/zh-hans/%E6%8A%BD%E8%B1%A1%E8%AA%9E%E6%B3%95%E6%A8%B9) 可以从loader直接传递给webpack，避免额外的解析，优化细节可以看这个[PR](https://github.com/webpack/webpack/pull/5925)
 * 使用速度更快的md4作为默认的hash方法
 * Node语言层面的优化，如用`for of`替换`forEach`，用`Map`和`Set`替换普通的对象字面量等，更多[PRs](https://github.com/webpack/webpack/pulls?q=is:pr+is:closed)
-* 把[`uglifyjs-webpack-plugin`](https://github.com/webpack-contrib/uglifyjs-webpack-plugin)换成了[`terser-webpack-plugin`](https://github.com/webpack-contrib/terser-webpack-plugin)，可以更好地针对ES6的代码进行处理
+* 把[`uglifyjs-webpack-plugin`](https://github.com/webpack-contrib/uglifyjs-webpack-plugin) 换成了[`terser-webpack-plugin`](https://github.com/webpack-contrib/terser-webpack-plugin) ，可以更好地针对ES6的代码进行处理
 
 更多关于性能优化的webpack迭代可以查看官方的release文档：[webpack release](https://github.com/webpack/webpack/releases)，搜索performance关键字。
 
