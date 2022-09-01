@@ -21,7 +21,7 @@ export function mount(props) {
 		.then(() => {
 			console.log('app2 mounted!');
 			import('./app1').then(app1 => {
-				const domElement = document.getElementById('my-parcel');
+				const domElement = document.getElementById('contact-parcel');
 				const parcel = mountParcel(app1.AddContactParcel, { domElement });
 				// parcel被挂载，在mountPromise中完成挂载
 				parcel.mountPromise.then(() => {

@@ -96,8 +96,8 @@ const applications = constructApplications({
     return System.import(name);
   }
 });
-const layoutEngine = constructEngine({ routes, applications });
-applications.forEach(registerApplications);
+const layoutEngine = constructLayoutEngine({ routes, applications });
+applications.forEach(registerApplication);
 start();
 ```
 

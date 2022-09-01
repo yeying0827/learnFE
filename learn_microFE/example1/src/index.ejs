@@ -32,7 +32,9 @@
   <script type="systemjs-importmap">
     {
       "imports": {
-        "single-spa": "https://cdn.jsdelivr.net/npm/single-spa@5.9.0/lib/system/single-spa.min.js"
+        "single-spa": "https://cdn.jsdelivr.net/npm/single-spa@5.9.0/lib/system/single-spa.min.js",
+        "react": "https://cdn.jsdelivr.net/npm/react@16.13.1/umd/react.production.min.js",
+        "react-dom": "https://cdn.jsdelivr.net/npm/react-dom@16.13.1/umd/react-dom.production.min.js"
       }
     }
   </script>
@@ -45,7 +47,10 @@
   <script type="systemjs-importmap">
     {
       "imports": {
-        "@yy/root-config": "//localhost:9000/yy-root-config.js"
+        "@yy/root-config":"//localhost:9000/yy-root-config.js",
+        "@yy/setting":"//localhost:8083/js/app.js",
+        "@yy/footer":"//localhost:8082/yy-footer.js",
+        "@yy/example":"//localhost:8081/yy-example.js"
       }
     }
   </script>
@@ -65,13 +70,35 @@
   <script src="https://cdn.jsdelivr.net/npm/systemjs@6.8.3/dist/system.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/systemjs@6.8.3/dist/extras/amd.min.js"></script>
   <% } %>
+  <template style="display: none;" id="single-spa-layout">
+    <single-spa-router>
+      <nav class="topnav">
+        <application name="@yy/example" loader="topNav" props="authToken"></application>
+      </nav>
+      <div class="main-content">
+        <route path="settings">
+          <application name="@yy/setting"></application>
+          <!-- <div>Setting Page</div> -->
+        </route>
+        <route path="clients">
+          <!-- <application name="@yy/clients"></application> -->
+          <div>Clients Page</div>
+        </route>
+      </div>
+      <footer>
+        <application name="@yy/footer" loader="footer"></application>
+      </footer>
+    </single-spa-router>
+  </template>
 </head>
 <body>
   <noscript>
     You need to enable JavaScript to run this app.
   </noscript>
   <div id="place-in-dom-to-mount-parcel"></div>
-  <div id="my-parcel"></div>
+  <div id="contact-parcel"></div>
+  <div id="container"></div>
+  <div id="a-vue-container"></div>
   <main></main>
   <script>
     System.import('@yy/root-config');
