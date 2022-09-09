@@ -12,7 +12,7 @@ registerApplication({
     System.import(
       "https://unpkg.com/single-spa-welcome/dist/single-spa-welcome.js"
     ),
-  activeWhen: ["/"],
+  activeWhen: [(location) => location.pathname === "/"],
 });
 
 // registerApplication({
@@ -23,7 +23,7 @@ registerApplication({
 
 registerApplication({
   name: '@yy/app1',
-  app: () => import("./apps/app1.js"),
+  app: require("./apps/app1.js"),
   activeWhen: ["/app1"],
   customProps: {
     prop1: 'foo'
@@ -32,7 +32,7 @@ registerApplication({
 
 registerApplication({
   name: '@yy/app2',
-  app: () => import("./apps/app2.js"),
+  app: () => System.import('@yy/setting'), //import("./apps/app2.js"),
   activeWhen: ["/app2"]
 });
 
@@ -62,20 +62,20 @@ const data = {
 const routes = constructRoutes(document.querySelector('#single-spa-layout'), data);
 /*
 const routes = constructRoutes({
-  mode: 'history', 
-  base: '/', 
-  containerEl: '#container', 
-  disableWarnings: false, 
+  mode: 'history',
+  base: '/',
+  containerEl: '#container',
+  disableWarnings: false,
   // redirects,
   routes: [
     {
-      type: "nav", 
+      type: "nav",
       attrs: [ { "name": "class", "value": "topNav" } ],
       routes: [
-        { 
-          type: "application", 
-          name: "@yy/example", 
-          props: { authToken: '12345678' } 
+        {
+          type: "application",
+          name: "@yy/example",
+          props: { authToken: '12345678' }
         }
       ]
     },
@@ -83,19 +83,19 @@ const routes = constructRoutes({
       type: "div",
       attrs: [ { "name": "class", "value": "main-content" } ],
       routes: [
-        { 
-          type: "route", 
-          path: "settings", 
+        {
+          type: "route",
+          path: "settings",
           routes: [
-            { 
-              type: "application", 
+            {
+              type: "application",
               name: "@yy/setting"
             }
           ]
         },
-        { 
-          type: "route", 
-          path: "clients", 
+        {
+          type: "route",
+          path: "clients",
           routes: [
             {
               type: "div",
@@ -111,11 +111,11 @@ const routes = constructRoutes({
       ]
     },
     {
-      type: "footer", 
+      type: "footer",
       routes: [
-        { 
-          type: "application", 
-          name: "@yy/footer", 
+        {
+          type: "application",
+          name: "@yy/footer",
           props: { name: "Footer" },
           loader: `<nav class="placeholder">Footer加载中...</nav>`
         }

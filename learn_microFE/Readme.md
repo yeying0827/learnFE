@@ -1,0 +1,4 @@
+- example1 (root-config)
+  - example (react app)
+  - footer (react app)
+  - setting (vue app)

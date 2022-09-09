@@ -16,7 +16,10 @@ export function mount(props) {
 	return Promise
 		.resolve()
 		.then(() => {
-			console.log('app1 mounted!');
+			const ele = document.createElement('section');
+			ele.id = 'yy/app1';
+			ele.innerText = 'App1 mounted';
+			document.body.append(ele);
 		});
 };
 export function unmount(props) {
