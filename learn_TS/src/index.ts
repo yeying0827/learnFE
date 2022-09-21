@@ -183,17 +183,18 @@ declare let c1: c;
 
 // c1 = 1; // TS2322: Type '1' is not assignable to type '0'.
 // c1 = Languages.Chinese; // ok
+// 把成员当作类型来使用
 // c1 = Languages.English; // Type 'Languages.English' is not assignable to type '0'.
 
 declare let d: Directions;
 
-enum Animal {
+enum Animals {
     Cat,
     Dog
 }
 
 // d = Directions.Up; // ok
-// d = Animal.Cat; // TS2322: Type 'Animal.Cat' is not assignable to type 'Directions'.
+// d = Animals.Cat; // TS2322: Type 'Animals.Cat' is not assignable to type 'Directions'.
 
 enum Month {
     January,
@@ -224,3 +225,161 @@ namespace Month {
 
 console.log(Month.isSummer(Month.March));
 
+/*
+* interface
+* */
+// const getUserName = (user) => user.name; // TS7006: Parameter 'user' implicitly has an 'any' type.
+const getUserName = (user: User) => user.name;
+const getUserAge = (user: User) => user.age;
+
+interface Say {
+    (words: string): string
+}
+
+interface Email {
+    [name: string]: string
+}
+
+interface User {
+    name: string
+    age?: number
+    readonly gender: boolean
+    say?: Say,
+    email?: Email
+}
+
+let u: User = {
+    name: 'Becky',
+    gender: false
+};
+u.say = function (word: string) { // TS2339: Property 'say' does not exist on type 'User'.
+    return 'hello world!';
+}
+
+// const modifyGender = (user: User) => user.gender = true; // TS2540: Cannot assign to 'gender' because it is a read-only property.
+
+interface Config {
+    width?: number
+}
+
+function calculateAreas(config: Config): { areas: number } {
+    let result = 100;
+    console.log('config', config) // config { widdth: 5 }
+    if (config.width) {
+        result = config.width * config.width;
+    }
+
+    return { areas: result };
+}
+
+// let mySquare = calculateAreas({ widdth: 5 }); // TS2345: Argument of type '{ widdth: number; }' is not assignable to parameter of type 'Config'. Object literal may only specify known properties, but 'widdth' does not exist in type 'Config'.
+let mySquare = calculateAreas({ widdth: 5 } as Config);
+
+// let options: any = { widdth: 5 };
+// let mySquare = calculateAreas(options);
+
+interface Member {
+    level: number
+}
+
+interface VIPUser extends User, Member {
+    broadcast: () => void
+}
+
+/*
+* Class
+* */
+abstract class Animal {
+    abstract makeNoise(): void;
+
+    move(): void {
+        console.log('roaming the earch...');
+    }
+}
+// let animal = new Animal(); // TS2511: Cannot create an instance of an abstract class.
+class Cat extends Animal {
+    makeNoise() {
+        console.log('miao~');
+    }
+}
+
+const cat = new Cat();
+cat.move(); // roaming the earch...
+cat.makeNoise(); // miao~
+
+class Vehicle {
+    protected startRun(): void {
+        console.log('starting ...');
+    }
+}
+
+class Car extends Vehicle {
+    init() {
+        this.startRun();
+    }
+}
+
+const vehicle = new Vehicle();
+const car = new Car();
+// vehicle.startRun(); // TS2445: Property 'startRun' is protected and only accessible within class 'Vehicle' and its subclasses.
+// car.startRun(); // TS2445: Property 'startRun' is protected and only accessible within class 'Vehicle' and its subclasses.
+car.init();
+
+class Props {
+    public children: Array<any> | never[] = []
+    public speed: number = 500
+    public height: number = 160
+    public animation: string = 'easeInOutQuad'
+    public isAuto: boolean = true
+    public autoPlayInterval: number = 4500
+    public afterChange: () => void = () => {}
+    public beforeChange: Function = () => {}
+    public selectedColor: string = ''
+    public showDots: boolean = true
+}
+
+const defaultProps = new Props();
+
+/*
+* Function
+* */
+// const add = (a: number, b: number) => a + b;
+interface Add {
+    (a: number, b: number): number
+}
+const add: Add = (a:number, b:number = 0) => a + b;
+
+const add2 = (a: number, ...rest: number[]) => rest.reduce((a, b) => a+ b, a);
+
+console.log(add2(1, 2, 3, 4));
+
+interface Position {
+    top: number,
+    right?: number,
+    bottom?: number,
+    left?: number
+}
+
+function assigned(all: number): Position;
+function assigned(topAndBottom: number, leftAndRight: number): Position;
+function assigned(top: number, right: number, bottom: number, left: number): Position;
+
+function assigned(a: number, b?: number, c?: number, d?: any) {
+    if (b === undefined && c === undefined && d === undefined) {
+        b = c = d = a;
+    } else if (c === undefined && d === undefined) {
+        c = a;
+        d = b;
+    }
+    return {
+        top: a,
+        right: b,
+        bottom: c,
+        left: d
+    };
+}
+
+assigned(1);
+assigned(1, 2);
+// assigned(1, 2, 3); // TS2575: No overload expects 3 arguments, but overloads do exist that expect either 2 or 4 arguments.
+assigned(1, 2, 3, 4);
