@@ -232,10 +232,12 @@ console.log(Month.isSummer(Month.March));
 const getUserName = (user: User) => user.name;
 const getUserAge = (user: User) => user.age;
 
+// 函数类型
 interface Say {
     (words: string): string
 }
 
+// 可索引类型
 interface Email {
     [name: string]: string
 }
@@ -258,9 +260,16 @@ u.say = function (word: string) { // TS2339: Property 'say' does not exist on ty
 
 // const modifyGender = (user: User) => user.gender = true; // TS2540: Cannot assign to 'gender' because it is a read-only property.
 
+// 属性检查
 interface Config {
     width?: number
 }
+
+// 2.添加字符串索引签名
+// interface Config {
+//     width?: number
+//     [propName: string]: any
+// }
 
 function calculateAreas(config: Config): { areas: number } {
     let result = 100;
@@ -273,8 +282,10 @@ function calculateAreas(config: Config): { areas: number } {
 }
 
 // let mySquare = calculateAreas({ widdth: 5 }); // TS2345: Argument of type '{ widdth: number; }' is not assignable to parameter of type 'Config'. Object literal may only specify known properties, but 'widdth' does not exist in type 'Config'.
+// 1.使用类型断言
 let mySquare = calculateAreas({ widdth: 5 } as Config);
 
+// 3.将字面量赋值给另外一个变量，本质是转化为any类型
 // let options: any = { widdth: 5 };
 // let mySquare = calculateAreas(options);
 
@@ -494,3 +505,77 @@ function factory1<T>(type: T1<T>): T {
 const factory2 = <T>(type: {new(): T}): T => {
     return new type();
 }
+
+/*
+* 类型断言与类型守卫
+* */
+// 类型断言
+interface Student {
+    name: string,
+    age: number
+}
+
+const student = {} as Student;
+student.name = 'tom'; // TS2339: Property 'name' does not exist on type '{}'.
+student.age = 18; // TS2339: Property 'age' does not exist on type '{}'.
+
+const st1 = 'jack' as any as Student;
+
+const st2: Student = {} as Student;
+
+// 类型守卫
+class Person {
+    walk() {
+        console.log('walking...');
+    }
+}
+
+function getSomething(arg: Cat | Person) {
+    // 细化类型为Cat
+    if(arg instanceof Cat) {
+        // arg.walk(); // TS2339: Property 'walk' does not exist on type 'Cat'.
+        arg.move();
+    }
+    // 细化类型为Person
+    if(arg instanceof Person) {
+        // arg.move(); // TS2339: Property 'move' does not exist on type 'Person'.
+        arg.walk();
+    }
+}
+
+getSomething(new Cat()); // roaming the earch...
+getSomething(new Person()); // walking...
+
+function getSomething2(arg: Person | Cat) {
+    if ('walk' in arg) {
+        // arg.move(); // TS2339: Property 'move' does not exist on type 'Person'.
+        arg.walk();
+    }
+    if ('move' in arg) {
+        // arg.walk(); // TS2339: Property 'walk' does not exist on type 'Cat'.
+        arg.move();
+    }
+}
+
+// 字面量类型守卫
+type Error1 = {
+    kind: 'networkError',
+    networkStatus: string
+}
+type Error2 = {
+    kind: 'serverError',
+    serverStatus: string
+}
+
+function doHandle(error: Error1 | Error2) {
+    if (error.kind === 'networkError') {
+        // console.log(error.serverStatus); // TS2339: Property 'serverStatus' does not exist on type 'Error1'.
+        console.log(error.networkStatus);
+    }
+    if (error.kind === 'serverError') {
+        // console.log(error.networkStatus); // TS2339: Property 'networkStatus' does not exist on type 'Error2'.
+        console.log(error.serverStatus);
+    }
+}
+
+doHandle({ kind: 'serverError', serverStatus: 'server error...' });
