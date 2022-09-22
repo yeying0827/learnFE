@@ -383,3 +383,114 @@ assigned(1);
 assigned(1, 2);
 // assigned(1, 2, 3); // TS2575: No overload expects 3 arguments, but overloads do exist that expect either 2 or 4 arguments.
 assigned(1, 2, 3, 4);
+
+// interface与type区别（？）：interface可以被继承，type不可以
+type f = {
+    name: string
+    age?: number
+}
+
+/*
+* generic
+* */
+// 基础使用
+// function returnItem<T>(para: T): T {
+//     return para;
+// }
+
+// 多个类型参数
+function swap<T, U>(tuple: [T, U]): [U, T] {
+    return [tuple[1], tuple[0]];
+}
+
+console.log(swap([7, 'seven'])); // [ 'seven', 7 ]
+
+// 泛型变量
+function getArrayLength<T>(arg: T[]) {
+    console.log(arg.length);
+
+    return arg;
+}
+
+getArrayLength<number>([1, 2, 3, 4]); // 4
+
+// 泛型接口
+interface ReturnItemFn<T> {
+    (para: T): T
+}
+
+const returnItem: ReturnItemFn<number> = para => para;
+
+// 泛型类
+class Stack<T> {
+    private arr: T[] = [];
+
+    public push(n: T) {
+        this.arr.push(n);
+    }
+
+    public pop() {
+        this.arr.pop();
+    }
+}
+
+// 泛型约束（限制泛型的类型范围）
+type Params = string | number
+
+class Queue<T extends Params> {
+
+}
+
+const q1 = new Queue<number>();
+// const q2 = new Queue<boolean>(); // TS2344: Type 'boolean' does not satisfy the constraint 'Params'.
+
+function getObjProperty<T extends object, U extends keyof T>(obj: T, key: U) {
+    return obj[key];
+}
+
+const person = {
+    id: 1,
+    name: 'lily'
+}
+
+getObjProperty(person, 'name');
+
+interface firstInterface {
+    doSomething(): number
+}
+
+interface secondInterface {
+    doAnother: () => number
+}
+
+interface childInterface extends firstInterface, secondInterface {}
+
+class Demo<T extends childInterface> {
+    private genericProperty: T;
+
+    useT() {
+        this.genericProperty.doSomething();
+        this.genericProperty.doAnother();
+    }
+}
+
+class Demo2<T extends firstInterface&secondInterface> {
+    private genericProperty: T;
+
+    useT() {
+        this.genericProperty.doSomething();
+        this.genericProperty.doAnother();
+    }
+}
+
+interface T1<T> {
+    new(): T
+}
+
+function factory1<T>(type: T1<T>): T {
+    return new type();
+}
+
+const factory2 = <T>(type: {new(): T}): T => {
+    return new type();
+}
