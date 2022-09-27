@@ -274,6 +274,8 @@ class Demo<T extends firstInterface, T extends secondInterface> { // TS2300: Dup
 1. 可以将接口`firstInterface`与`secondInterface`作为超接口来解决问题：
 
    ```typescript
+   interface childInterface extends firstInterface, secondInterface {}
+   
    class Demo<T extends childInterface> {
        private genericProperty: T;
    

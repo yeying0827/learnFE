@@ -1,3 +1,6 @@
+import './compatible';
+import './seniorType';
+
 function greeting(person: string) {
     return "Hello, " + person;
 }

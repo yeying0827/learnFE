@@ -78,7 +78,7 @@
     /* Type Checking */
     "strict": true,                                      /* 启用所有严格的类型检查选项。 */
     "noImplicitAny": true,                               /* 对具有隐含 "any"类型的表达式和声明启用错误报告. */
-    "strictNullChecks": true,                            /* When type checking, take into account 'null' and 'undefined'. */
+    // "strictNullChecks": true,                            /* When type checking, take into account 'null' and 'undefined'. */
     // "strictFunctionTypes": true,                      /* When assigning functions, check to ensure parameters and the return values are subtype-compatible. */
     // "strictBindCallApply": true,                      /* Check that the arguments for 'bind', 'call', and 'apply' methods match the original function. */
     "strictPropertyInitialization": false,             /* Check for class properties that are declared but not set in the constructor. */
