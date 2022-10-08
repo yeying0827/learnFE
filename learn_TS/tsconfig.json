@@ -11,11 +11,11 @@
     // "disableReferencedProjectLoad": true,             /* Reduce the number of projects loaded automatically by TypeScript. */
 
     /* Language and Environment */
-    "target": "es2016",                                  /* 指定 ECMAScript 目标版本。 */
+    "target": "es2020", //"es2016",                                  /* 指定 ECMAScript 目标版本。 */
     "lib": ["es6", "dom", "ESNext"],                     /* 指定一组打包的库声明文件，描述目标运行时环境。 */
     // "jsx": "preserve",                                /* Specify what JSX code is generated. */
     "experimentalDecorators": true,                      /* 启用对TC39第2阶段草案装饰器的实验性支持。 */
-    // "emitDecoratorMetadata": true,                    /* Emit design-type metadata for decorated declarations in source files. */
+     "emitDecoratorMetadata": true,                    /* Emit design-type metadata for decorated declarations in source files. */
     // "jsxFactory": "",                                 /* Specify the JSX factory function used when targeting React JSX emit, e.g. 'React.createElement' or 'h'. */
     // "jsxFragmentFactory": "",                         /* Specify the JSX Fragment reference used for fragments when targeting React JSX emit e.g. 'React.Fragment' or 'Fragment'. */
     // "jsxImportSource": "",                            /* Specify module specifier used to import the JSX factory functions when using 'jsx: react-jsx*'. */
@@ -79,10 +79,10 @@
     "strict": true,                                      /* 启用所有严格的类型检查选项。 */
     "noImplicitAny": true,                               /* 对具有隐含 "any"类型的表达式和声明启用错误报告. */
     // "strictNullChecks": true,                            /* When type checking, take into account 'null' and 'undefined'. */
-    // "strictFunctionTypes": true,                      /* When assigning functions, check to ensure parameters and the return values are subtype-compatible. */
+     "strictFunctionTypes": false,                      /* When assigning functions, check to ensure parameters and the return values are subtype-compatible. */
     // "strictBindCallApply": true,                      /* Check that the arguments for 'bind', 'call', and 'apply' methods match the original function. */
     "strictPropertyInitialization": false,             /* Check for class properties that are declared but not set in the constructor. */
-    // "noImplicitThis": true,                           /* Enable error reporting when 'this' is given the type 'any'. */
+     "noImplicitThis": false,                           /* Enable error reporting when 'this' is given the type 'any'. */
     // "useUnknownInCatchVariables": true,               /* Default catch clause variables as 'unknown' instead of 'any'. */
      "alwaysStrict": true,                               /* 确保 "use strict "总是被加到生成的代码中。 */
     // "noUnusedLocals": true,                           /* Enable error reporting when local variables aren't read. */

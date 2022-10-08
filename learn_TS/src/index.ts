@@ -1,5 +1,9 @@
+import 'reflect-metadata';
+
 import './compatible';
 import './seniorType';
+import './decorators';
+import './reflectMetadata';
 
 function greeting(person: string) {
     return "Hello, " + person;
