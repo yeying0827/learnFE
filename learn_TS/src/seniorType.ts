@@ -78,3 +78,55 @@ interface Interface3 extends Interface1,Interface {
 class BB implements Interface {
     num = 2
 }
+
+// 索引类型
+const user = {
+    username: 'Jessica Lee',
+    id: 460000201904141743,
+    token: '460000201904141743',
+    avatar: 'http://dummyimage.com/200x200',
+    role: 'vip'
+};
+
+// function pick1(o, names) {
+//     return names.map(n => o[n]);
+// }
+// pick1(user, ['id']); // [460000201904141760]
+
+interface Obj {
+    [key: string]: any
+}
+
+function pick1(o: Obj, names: string[]) {
+    return names.map(n => o[n]);
+}
+
+class Logo {
+    public src: string = 'https://www.google.com.hk/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png'
+    public alt: string = 'google'
+    public width: number = 500
+}
+
+type propNames = keyof Logo;
+type propsType = Logo[propNames];
+
+// 映射类型
+interface User {
+    username: string,
+    id: number,
+    token: string,
+    avatar: string,
+    role: string
+}
+
+type partial<T> = {
+    [K in keyof T]?: T[K]
+}
+
+type partialUser = partial<User>;
+
+function pick<T, K extends keyof T>(o: T, names: K[]): T[K][] {
+    return names.map(n => o[n]);
+}
+
+const res = pick(user, ["token", "id", "avatar"])
