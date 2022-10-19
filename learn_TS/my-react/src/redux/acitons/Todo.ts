@@ -22,6 +22,7 @@ const toggleTodo = (id: number) => ({
 })
 
 
+// export type AddTodoAction = ReturnType<typeof addTodo>;
 export interface AddTodoAction {
     type: ActionTodoConstants.ADD_TODO,
     payload: {
