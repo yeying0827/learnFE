@@ -68,6 +68,8 @@ type ConstructorParameters1<T extends new (...args: any[]) => any> = T extends n
    type ElementOf<T> = T extends Array<infer E> ? E : never;
    type TTuple = [string, number];
    type TUnion = ElementOf<TTuple>; // string | number
+   
+   type Res = TTuple[number]; // string | number，元组按下标取出所有的元素形成联合类型
    ```
 
    

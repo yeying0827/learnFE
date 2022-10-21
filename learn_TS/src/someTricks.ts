@@ -7,20 +7,20 @@ const cars: CarList = {
     MercedesBenz: { age: 133 }
 };
 
-const cars1: CarList = {
-    Audi1: { age: 119 },
-    BMW: { age: 113 },
-    MercedesBenz: { age: 133 }
-};
-
-const cars2: CarList = {
-    BMW: { age: 113 },
-    MercedesBenz: { age: 133 }
-};
-
-const car3: CarList = {
-    Audi: { age: 119 },
-    BMW: { age: 113 },
-    MercedesBenz: { age: 133 },
-    Ferrari: { age: 111 }
-};
+// const cars1: CarList = {
+//     Audi1: { age: 119 },
+//     BMW: { age: 113 },
+//     MercedesBenz: { age: 133 }
+// };
+//
+// const cars2: CarList = {
+//     BMW: { age: 113 },
+//     MercedesBenz: { age: 133 }
+// };
+//
+// const car3: CarList = {
+//     Audi: { age: 119 },
+//     BMW: { age: 113 },
+//     MercedesBenz: { age: 133 },
+//     Ferrari: { age: 111 }
+// };
