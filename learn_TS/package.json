@@ -11,6 +11,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "reflect-metadata": "^0.1.13"
+    "jquery": "^3.6.1",
+    "reflect-metadata": "^0.1.13",
+    "tslib": "^2.4.0",
+    "xiaomuzhu-events": "^3.0.1"
+  },
+  "devDependencies": {
+    "@types/jquery": "^3.5.14"
   }
 }
