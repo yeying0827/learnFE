@@ -13,7 +13,7 @@
     /* Language and Environment */
     "target": "es2020", //"es2016",                                  /* 指定 ECMAScript 目标版本。 */
     "lib": ["es6", "dom", "ESNext"],                     /* 指定一组打包的库声明文件，描述目标运行时环境。 */
-    // "jsx": "preserve",                                /* Specify what JSX code is generated. */
+    "jsx": "react", // "preserve"                                /* Specify what JSX code is generated. */
     "experimentalDecorators": true,                      /* 启用对TC39第2阶段草案装饰器的实验性支持。 */
      "emitDecoratorMetadata": true,                    /* Emit design-type metadata for decorated declarations in source files. */
     // "jsxFactory": "",                                 /* Specify the JSX factory function used when targeting React JSX emit, e.g. 'React.createElement' or 'h'. */
@@ -25,7 +25,7 @@
     // "moduleDetection": "auto",                        /* Control what method is used to detect module-format JS files. */
 
     /* Modules */
-    "module": "esnext", // "commonjs",                   /* 指定生成哪类模块代码。 */
+    "module": "commonjs",                                /* 指定生成哪类模块代码。 */
     "rootDir": "./src",                                  /* 指定源文件的根目录。 */
     "moduleResolution": "node",                          /* 指定TypeScript如何从一个给定的模块指定器中查找一个文件（解析策略）。 */
     // "baseUrl": "./",                                  /* Specify the base directory to resolve non-relative module names. */
@@ -101,7 +101,7 @@
     "skipLibCheck": true                                 /* Skip type checking all .d.ts files. */
   },
   "include": [                                           // 需要编译的ts文件一个*表示文件匹配**表示忽略文件的深度问题
-    "./src/**/*.ts"
+    "./src/**/*.tsx"
   ],
   "exclude": [
     "node_modules",

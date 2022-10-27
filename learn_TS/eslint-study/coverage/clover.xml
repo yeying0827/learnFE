@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1666780420077" clover="3.2.0">
+  <project timestamp="1666780420078" name="All files">
+    <metrics statements="28" coveredstatements="26" conditionals="6" coveredconditionals="6" methods="5" coveredmethods="4" elements="39" coveredelements="36" complexity="0" loc="28" ncloc="28" packages="1" files="4" classes="4"/>
+    <file name="add.ts" path="/Users/ying.ye/CodeProjects/learnFE/learn_TS/eslint-study/src/add.ts">
+      <metrics statements="3" coveredstatements="3" conditionals="2" coveredconditionals="2" methods="1" coveredmethods="1"/>
+      <line num="1" count="2" type="cond" truecount="1" falsecount="0"/>
+      <line num="2" count="2" type="cond" truecount="1" falsecount="0"/>
+      <line num="3" count="2" type="stmt"/>
+    </file>
+    <file name="getTopics.ts" path="/Users/ying.ye/CodeProjects/learnFE/learn_TS/eslint-study/src/getTopics.ts">
+      <metrics statements="8" coveredstatements="8" conditionals="1" coveredconditionals="1" methods="1" coveredmethods="1"/>
+      <line num="1" count="1" type="stmt"/>
+      <line num="2" count="1" type="stmt"/>
+      <line num="3" count="1" type="stmt"/>
+      <line num="4" count="1" type="stmt"/>
+      <line num="5" count="1" type="cond" truecount="1" falsecount="0"/>
+      <line num="6" count="1" type="stmt"/>
+      <line num="7" count="1" type="stmt"/>
+      <line num="8" count="1" type="stmt"/>
+    </file>
+    <file name="myForEach.ts" path="/Users/ying.ye/CodeProjects/learnFE/learn_TS/eslint-study/src/myForEach.ts">
+      <metrics statements="5" coveredstatements="5" conditionals="2" coveredconditionals="2" methods="1" coveredmethods="1"/>
+      <line num="1" count="1" type="cond" truecount="1" falsecount="0"/>
+      <line num="2" count="1" type="cond" truecount="1" falsecount="0"/>
+      <line num="3" count="2" type="stmt"/>
+      <line num="4" count="2" type="stmt"/>
+      <line num="5" count="1" type="stmt"/>
+    </file>
+    <file name="person.ts" path="/Users/ying.ye/CodeProjects/learnFE/learn_TS/eslint-study/src/person.ts">
+      <metrics statements="12" coveredstatements="10" conditionals="1" coveredconditionals="1" methods="2" coveredmethods="1"/>
+      <line num="1" count="1" type="stmt"/>
+      <line num="2" count="1" type="stmt"/>
+      <line num="3" count="1" type="stmt"/>
+      <line num="4" count="1" type="cond" truecount="1" falsecount="0"/>
+      <line num="5" count="1" type="stmt"/>
+      <line num="6" count="1" type="stmt"/>
+      <line num="7" count="1" type="stmt"/>
+      <line num="8" count="1" type="stmt"/>
+      <line num="9" count="1" type="stmt"/>
+      <line num="10" count="0" type="stmt"/>
+      <line num="11" count="0" type="stmt"/>
+      <line num="12" count="1" type="stmt"/>
+    </file>
+  </project>
+</coverage>

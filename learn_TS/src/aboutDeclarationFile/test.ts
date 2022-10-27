@@ -11,3 +11,8 @@ declare namespace jq {
 
 jq('#foo');
 jq.ajax('url', {});
+
+function foo(a: number, b: string): string {
+    return a + b;
+}
+let a = foo.apply(undefined, [10]);
