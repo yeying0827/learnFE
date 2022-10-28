@@ -85,12 +85,18 @@ function getValue(value: unknown): string {
 `never`类型表示的是那些永不存在的值的类型，是任何类型的子类型，可以赋值给任何类型（？）；但是，没有类型可以赋值给never类型（除了never类型本身之外）。
 
 ```typescript
-// let neverValue: never = 1; // TS2322: Type 'number' is not assignable to type 'never'.
+const never1: never = testNever();
+const num2: number = never1;
+
+function testNever(): never {
+	throw 'error';
+}
+
+let neverValue: never = 1; // TS2322: Type 'number' is not assignable to type 'never'.
+let anyValue: any = 1;
+neverValue = anyValue; // TS2322: Type 'any' is not assignable to type 'never'.
+
 let neverArray: never[] = [];
-// let anArr: [] = neverValue; // TS2454: Variable 'neverValue' is used before being assigned.
-// neverValue = anyValue; // TS2322: Type 'any' is not assignable to type 'never'.
-// let n1: number = neverArray; // TS2322: Type 'never[]' is not assignable to type 'number'.
-// let n2: number = neverValue; // TS2454: Variable 'neverValue' is used before being assigned.
 ```
 
 never类型常见的两种使用场景：
