@@ -20,10 +20,11 @@
 
 <script setup>
 import {ref, computed} from "vue";
+import {useStorage} from "../utils/storage";
 
 function useTodos() {
   let title = ref("");
-  let todos = ref([{title: "学习Vue3", done: false}]);
+  let todos = useStorage('todos');
 
   let active = computed(() => {
     return todos.value.filter(v => !v.done).length;
