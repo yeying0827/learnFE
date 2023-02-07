@@ -165,5 +165,4 @@ let {title, todos, addTodo, all, active, clear, allDone, showModal, removeTodo} 
   top: 10px;
   right: 10px;
 }
-isDel.value = true;
 </style>
