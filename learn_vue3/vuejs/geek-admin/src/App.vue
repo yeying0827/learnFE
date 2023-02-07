@@ -8,7 +8,13 @@ import TheWelcome from './components/TheWelcome.vue'
     <router-link to="/">首页</router-link> |
     <router-link to="/about">关于</router-link>
   </div>
-  <router-view></router-view>
+  <router-view v-slot="{ Component, route }">
+    <transition name="route" mode="out-in">
+      <div :key="route.path" class="container">
+        <component :is="Component"/>
+      </div>
+    </transition>
+  </router-view>
 </template>
 
 <style scoped>
@@ -37,5 +43,20 @@ header {
     place-items: flex-start;
     flex-wrap: wrap;
   }
+}
+
+.route-enter-from {
+  opacity: 0;
+  transform: translateX(100px);
+}
+.route-enter-active {
+  transition: all .3s ease-out;
+}
+.route-leave-to {
+  opacity: 0;
+  transform: translateX(-100px);
+}
+.route-leave-active {
+  transition: all .3s ease-out;
 }
 </style>

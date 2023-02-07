@@ -11,12 +11,14 @@
   <Rate v-model="score">
     <img src="/favicon.ico" alt="" width="14">
   </Rate>
+  <HelloTransition/>
 </template>
 
 <script setup>
 import {useFavicon} from "../utils/favicon";
 import {useFullscreen} from "@vueuse/core";
 import Rate from '../components/Rate.vue';
+import HelloTransition from '../components/HelloTransition.vue';
 import {ref} from "vue";
 
 const score = ref(3.5);
