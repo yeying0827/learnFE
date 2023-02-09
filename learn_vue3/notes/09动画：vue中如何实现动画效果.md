@@ -326,3 +326,7 @@ let {title, todos, addTodo, all, active, clear, allDone, showModal, removeTodo} 
 * 路由转场动画
 * 实际开发中动画也不是越多越好，动画的设计也需要设计师去系统地设计效果，不要用动画做出眼花缭乱的网页
 * 更复杂的动画，需要借助JavaScript和第三方库的支持，在before-enter、enter、after-enter等事件回调中实现动画
+
+思考：
+
+怎么给弹窗做振动效果？
