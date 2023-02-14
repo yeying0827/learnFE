@@ -39,7 +39,7 @@ npm install vuex@next
    可以把mutation理解为数据更新的申请单，mutation中的函数会把state作为参数，本例中直接操作state.count就可以完成数据的修改。
 
    ```javascript
-   // src/store/index.js
+   // src/store/index.ts
    import {createStore} from "vuex";
    
    const store = createStore({
@@ -208,7 +208,7 @@ npm install vuex@next
 在Vuex中，可以使用**getters配置**，来实现类似computed的功能。🌰：
 
 ```javascript
-// src/store/index.js
+// src/store/index.ts
 import {createStore} from "vuex";
 
 const store = createStore({
@@ -248,7 +248,7 @@ const double = computed(() => store.getters.double);
 🌰：
 
 ```javascript
-// src/store/index.js
+// src/store/index.ts
 import {createStore} from "vuex";
 // import {createStore} from "./gvuex";
 

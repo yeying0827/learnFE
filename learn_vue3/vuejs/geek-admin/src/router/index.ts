@@ -1,10 +1,10 @@
-import {createRouter, createWebHashHistory} from 'vue-router';
+import {createRouter, createWebHashHistory, Router, RouteRecordRaw} from 'vue-router';
 // import {createRouter, createWebHashHistory, createWebHistory} from './grouter';
 
 import Home from '../pages/Home.vue';
 import About from '../pages/About.vue';
 
-const routes = [
+const routes: Array<RouteRecordRaw> = [
     {
         path: '/',
         name: 'Home',
@@ -17,7 +17,7 @@ const routes = [
     }
 ];
 
-const router = createRouter({
+const router: Router = createRouter({
     history: createWebHashHistory(),
     // history: createWebHistory(),
     routes

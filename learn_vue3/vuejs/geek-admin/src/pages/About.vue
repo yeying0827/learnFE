@@ -1,5 +1,6 @@
 <template>
   <h1>这是关于</h1>
+  <Heading :level="2">This is About Page.</Heading>
   <button @click="loading">123</button><button @click="reset">reset</button>
   <br>
   <button @click="toggle">toggle</button>
@@ -20,6 +21,7 @@ import {useFullscreen} from "@vueuse/core";
 import Rate from '../components/Rate.vue';
 import HelloTransition from '../components/HelloTransition.vue';
 import {ref} from "vue";
+import Heading from "../components/Heading";
 
 const score = ref(3.5);
 

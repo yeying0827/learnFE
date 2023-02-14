@@ -115,7 +115,7 @@ window.addEventListener('popState', fn);
 * 使用：修改src/router/index.js中的相关引用路径
 
   ```javascript
-  // src/router/index.js
+  // src/router/index.ts
   // import {createRouter, createWebHashHistory} from 'vue-router';
   import {createRouter, createWebHashHistory} from './grouter';
   
@@ -184,7 +184,7 @@ window.addEventListener('popState', fn);
 * 为了使用上述两个组件，我们需要进行注册。
 
   ```javascript
-  // src/router/grouter/index.js
+  // src/router/grouter/index.ts
   import {ref, inject} from "vue";
   import RouterView from "./RouterView.vue";
   import RouterLink from "./RouterLink.vue";
@@ -239,7 +239,7 @@ vue-router实战中常见的一些痛点
 1. 新增createWebHistory函数，并将监听回调的current赋值改为`window.location.pathname`
 
 ```javascript
-// src/router/grouter/index.js
+// src/router/grouter/index.ts
 import {ref, inject} from "vue";
 import RouterView from "./RouterView.vue";
 import RouterLink from "./RouterLink.vue";

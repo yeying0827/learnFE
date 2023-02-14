@@ -30,8 +30,8 @@
   </div>
 </template>
 
-<script setup>
-import {ref, computed, reactive} from "vue";
+<script lang="ts" setup>
+import {ref, Ref, computed, reactive} from "vue";
 import {useStorage} from "../utils/storage";
 
 
@@ -61,7 +61,11 @@ function afterEnter(el) {
 
 function useTodos() {
   let title = ref("");
-  let todos = useStorage('todos');
+  interface Todo {
+    title: string,
+    done: boolean
+  }
+  let todos: Ref<Todo[]> = ref([{ title: '学习vue3 & typescript', done: false }]); // useStorage('todos');
 
   let active = computed(() => {
     return todos.value.filter(v => !v.done).length;
