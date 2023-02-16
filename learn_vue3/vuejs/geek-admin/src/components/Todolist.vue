@@ -119,7 +119,7 @@ let {title, todos, addTodo, all, active, clear, allDone, showModal, removeTodo} 
 
 </script>
 
-<style>
+<style lang="scss">
 .info-wrapper {
   position: fixed;
   top: 20px;
@@ -156,12 +156,14 @@ let {title, todos, addTodo, all, active, clear, allDone, showModal, removeTodo} 
   transform: translateX(30px);
 }
 
-.animate-wrapper .animate {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  z-index: 100;
-  transition: all .5s linear;
+.animate-wrapper{
+  .animate {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+    transition: all .5s linear;
+  }
 }
 
 .dustbin {
