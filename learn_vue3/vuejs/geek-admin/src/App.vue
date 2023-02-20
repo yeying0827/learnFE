@@ -1,6 +1,22 @@
 <script setup>
-import HelloWorld from './components/HelloWorld.vue'
-import TheWelcome from './components/TheWelcome.vue'
+import {ref} from 'vue';
+import HelloWorld from './components/HelloWorld.vue';
+import TheWelcome from './components/TheWelcome.vue';
+
+// function fib(n) {
+//   if (n <= 1) return 1;
+//   else return fib(n-1) + fib(n-2);
+// }
+function fib(n) {
+  let arr = [1, 1];
+  let i = 2;
+  while(i <= n) {
+    arr[i] = arr[i - 1] + arr[i - 2];
+    i ++;
+  }
+  return arr[n];
+}
+let count = ref(fib(38));
 </script>
 
 <template>
@@ -39,6 +55,9 @@ import TheWelcome from './components/TheWelcome.vue'
         </div>
         <div>
           <router-link to="/about">关于</router-link>
+        </div>
+        <div>
+          <span>{{count}}</span>
         </div>
       </el-aside>
       <el-container>
