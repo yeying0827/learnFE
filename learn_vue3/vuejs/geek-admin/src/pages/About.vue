@@ -13,6 +13,7 @@
     <img src="/favicon.ico" alt="" width="14">
   </Rate>
   <HelloTransition/>
+  <Chart></Chart>
 </template>
 
 <script setup>
@@ -22,6 +23,7 @@ import Rate from '../components/Rate.vue';
 import HelloTransition from '../components/HelloTransition.vue';
 import {ref} from "vue";
 import Heading from "../components/Heading";
+import Chart from '../components/Chart.vue';
 
 const score = ref(3.5);
 

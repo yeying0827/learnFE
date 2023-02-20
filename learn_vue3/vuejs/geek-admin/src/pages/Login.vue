@@ -3,6 +3,8 @@
     <el-form ref="formRef">
       <el-form-item label="用户名">
         <el-input type="text" v-model="username"></el-input>
+        <input type="text" v-focus placeholder="v-focus test1"/>
+        <input type="text" placeholder="v-focus test2"/>
       </el-form-item>
       <el-form-item label="密码">
         <el-input type="password" v-model="password"></el-input>

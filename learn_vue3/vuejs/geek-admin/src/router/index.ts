@@ -1,5 +1,6 @@
 import {createRouter, createWebHashHistory, Router, RouteRecordRaw} from 'vue-router';
 // import {createRouter, createWebHashHistory, createWebHistory} from './grouter';
+import NProgress from 'nprogress';
 
 import Home from '../pages/Home.vue';
 import About from '../pages/About.vue';
@@ -32,12 +33,17 @@ const router: Router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
+    NProgress.start();
     let token = getToken();
     if (!token && to.path !== '/login') {
         next('/login');
         return;
     }
     next();
+})
+
+router.afterEach(() => {
+    NProgress.done();
 })
 
 export default router;
