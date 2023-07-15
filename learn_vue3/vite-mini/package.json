@@ -1,0 +1,22 @@
+{
+  "name": "vite-mini",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vue/compiler-dom": "^3.3.4",
+    "koa": "^2.14.2",
+    "vue": "^3.3.4"
+  },
+  "devDependencies": {
+    "@vue/compiler-sfc": "^3.3.4",
+    "chokidar": "^3.5.3",
+    "vite": "^4.4.4"
+  }
+}
