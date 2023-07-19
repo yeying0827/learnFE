@@ -10,7 +10,7 @@
 
 然后就有了Vuex5相关提案的讨论，整个讨论过程都是在Github的issue里推进的，可以访问[issue](https://github.com/vuejs/rfcs/pull/271)去围观。
 
-Vuex5的提案相比Vuex4有很大的改进，解决了一些Vuex4中的缺点。Vuex5能够同时支持composition api和option api，并且去掉了namespace模式，使用组合store的方式更好地支持了TypeScript的类型推导，还去掉了容易混淆的mutation和action概念，只保留了action，并且支持自动的代码分割。
+Vuex5的提案相比Vuex4有很大的改进，解决了一些Vuex4中的缺点。Vuex5能够同时支持composition api和option api，并且去掉了namespace模式，**使用组合store的方式更好地支持了TypeScript的类型推导**，还去掉了容易混淆的mutation和action概念，只保留了action，并且支持自动的代码分割。
 
 通过对这个提案研究，可以体验一下在一个框架中如何讨论新的语法设计和实现，以及如何通过api的设计去解决开发方式的痛点。
 
