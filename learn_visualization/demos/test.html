@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        canvas {
+            height: 512px;
+            width: 512px;
+            border: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <canvas height="512" width="512"></canvas>
+    <script>
+        const canvas = document.querySelector('canvas');
+        const ctx = canvas.getContext('2d');
+
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.scale(1, -1);
+
+        // function
+    </script>
+</body>
+</html>
