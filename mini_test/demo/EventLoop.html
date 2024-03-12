@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-cn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>EventLoop 测试</title>
+    <style>
+        .title {
+            font-size: 20px;
+            color: darkcyan;
+        }
+    </style>
+    <script type="text/javascript">
+        console.log('script脚本');
+
+        console.log('sync code1: in script');
+
+        setTimeout(function timer1() {
+            console.log('Macro Task1：setTimeout');
+        }, 0);
+
+        let p1;
+        function func1() {
+            console.log('sync code2: in func1');
+            p1 = new Promise((resolve, reject) => {
+                console.log('sync code3: p1 executor');
+                resolve('Micro Task1: promise then - p1 resolved!');
+            });
+        }
+
+        const p2 = Promise.resolve('Micro Task2: Promise.resolve then');
+
+        func1();
+        p2.then(value => { // Promise成功执行后的处理程序
+            console.log('1.' + value);
+        });
+        p1.then(value => { // Promise成功执行后的处理程序
+            console.log(value);
+        });
+        p2.then(value => { // Promise成功执行后的处理程序
+            console.log('2.' + value);
+        });
+    </script>
+    <script>
+        const start = performance.now();
+        for (let i = 0; i < 10e7; i ++) {}
+        console.log(`Time span: ${performance.now() - start}ms`);
+    </script>
+</head>
+<body>
+    <h1>Event Loop 测试</h1>
+</body>
+</html>
