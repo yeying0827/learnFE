@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>OpenLayers demo</title>
+    <script type="systemjs-importmap">
+        {
+            "imports": {
+                "ol": "https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
+    <script src="https://cdn.jsdelivr.net/npm/systemjs@6.8.3/dist/system.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/systemjs@6.8.3/dist/extras/use-default.js"></script>
+</head>
+<body>
+<div id="map" style="width: 500px; height: 500px;"></div>
+<script type="module">
+    const ol = await System.import('ol');
+    const OlMap = ol.Map,
+    	View = ol.View,
+    	TileLayer = ol.layer.Tile;
+    const XYZ = ol.source.XYZ;
+    const OSM = ol.source.OSM;
+    const map = new OlMap({
+    	target: 'map',
+    	view: new View({
+    		center: [120.212, 30.208],
+    		projection: 'EPSG:4326', // 默认：EPSG3857 fromEPSG4326
+    		zoom: 9,
+    		maxZoom: 17,
+    		minZoom: 7
+    	}),
+    	layers: [
+    		new TileLayer({
+    			source: /*new OSM()*/new XYZ({
+    				url: './maps/{z}/{x}/{y}.png'
+    			})
+    		})
+    	]
+    });
+
+    const olExtent = ol.extent;
+    map.on('moveend', e => {
+    	console.log('zoom', map.frameState_.viewState.zoom);
+    	const extent = map.frameState_.extent;
+    	console.log('extent', extent);
+    	console.log('TopLeft', olExtent.getTopLeft(extent));
+    	console.log('BottomRight', olExtent.getBottomRight(extent));
+    });
+
+    const Feature = ol.Feature;
+    const Point = ol.geom.Point;
+    const Style = ol.style.Style,
+    	CircleStyle = ol.style.Circle,
+    	Fill = ol.style.Fill,
+    	Stroke = ol.style.Stroke;
+    const VectorSource = ol.source.Vector,
+    	VectorLayer = ol.layer.Vector;
+    let count = 0;
+    map.on('click', e => {
+    	const features = [];
+    	console.log(e.coordinate);
+
+    	const layers = map.getLayers();
+    	layers.forEach(item => {
+    		if(item instanceof VectorLayer) map.removeLayer(item);
+    	});
+
+    	const iconFeature = new Feature({
+    		geometry: new Point(e.coordinate),
+    		name: count ++,
+    		location: e.coordinate
+    	});
+    	const style = new Style({
+    		image: new CircleStyle({
+    			radius: 10,
+    			fill: new Fill({
+    				color: '#f49d41'
+    			}),
+    			stroke: new Stroke({
+    				color: '#836365',
+    				width: 1
+    			})
+    		})
+    	});
+    	iconFeature.setStyle(style);
+    	features.push(iconFeature);
+    	const vectorSource = new VectorSource({
+    		features
+    	});
+    	const vectorLayer = new VectorLayer({
+    		source: vectorSource,
+    		opacity: 0.8
+    	});
+    	map.addLayer(vectorLayer);
+    });
+</script>
+</body>
+</html>
