@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>图片懒加载</title>
+</head>
+<body>
+	<div>
+		<img src="" id="preloadImage">
+	</div>
+	<script type="text/javascript">
+		/** 
+		 * PreloadImage类表示要使用代理的图片元素
+		 **/
+		class PreloadImage {
+			constructor(imgNode) {
+				this.imgNode = imgNode;
+			}
+
+			setSrc(imgUrl) {
+				this.imgNode.src = imgUrl;
+			}
+		}
+
+		/** 
+		 * ProxyImage类用于图片的代理
+		 **/
+		class ProxyImage {
+			static LOADING_URL = "https://dss0.bdstatic.com/5aV1bjqh_Q23odCf/static/mantpl/img/news/hot_search/top_1@1x-d1e660cf3b.png";
+
+			constructor(targetImage) {
+				this.targetImage = targetImage;
+			}
+
+			setSrc(targetUrl) {
+				// 真实img节点初始化展示的是一个占位图
+				this.targetImage.setSrc(ProxyImage.LOADING_URL);
+				// 创建一个加载图片的image实例
+				const image = new Image();
+				image.onload = () => {
+					// 当大图片加载完毕后，再将图片地址赋值给真实的img标签
+					this.targetImage.setSrc(targetUrl);
+				};
+				image.src = targetUrl;
+			}
+		}
+
+		const imgEl = document.querySelector('#preloadImage');
+		const preloadImage = new PreloadImage(imgEl); // 创建一个需要使用代理的图片元素
+		const proxyImage = new ProxyImage(preloadImage); // 给图片元素配置代理
+		proxyImage.setSrc("https://w.wallhaven.cc/full/j3/wallhaven-j3m8y5.png");
+	</script>
+</body>
+</html>
