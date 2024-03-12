@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
-    <title>Learning WebGL - 纹理</title>
+	<title>Learning WebGL</title>
 </head>
 <body>
 	<canvas id="drawing" width="400" height="400"></canvas>
@@ -66,10 +66,10 @@
 				//// 调试着色器（用于开发时辅助调试）
 				// 如果gl.getShaderParameter()用于取得编译之后的编译状态，返回false，说明编译出错
 				if(!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))	{
-					console.log(gl.getShaderInfoLog(vertexShader)); // 取得错误信息
+					alert(gl.getShaderInfoLog(vertexShader)); // 取得错误信息
 				}
 				if(!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS))	{
-					console.log(gl.getShaderInfoLog(fragmentShader)); // 取得错误信息
+					alert(gl.getShaderInfoLog(fragmentShader)); // 取得错误信息
 				}
 
 				// 5.把两个对象链接到着色器程序
@@ -82,78 +82,47 @@
 				// gl.getProgramParameter()用于检测状态，返回false，说明链接失败
 				// 最常见的程序错误发生在链接阶段
 				if(!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-					console.log(gl.getProgramInfoLog(program)); // 获取错误信息
+					alert(gl.getProgramInfoLog(program)); // 获取错误信息
 				}
 
 				// 6.链接到程序之后，就可以通过gl.useProgram()方法让WebGL上下文使用这个程序了
 				gl.useProgram(program);
 				// 所有后续的绘制操作都会使用这个程序
 
-				drawTexture(gl, program);
+				// 检测着色器
+				if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+					alert(gl.getShaderInfoLog(vertexShader));
+				}
+				// 检测着色器程序
+				if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+					alert(gl.getProgramInfoLog(program));
+				}
 
-				gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+				reassign(gl, program);
 			} else {
 				alert("WebGL context could not be created.");
 			}
 		}
 
-		// 绘制纹理
-		function drawTexture(gl, program) {
-			const texture = gl.createTexture();
-			gl.bindTexture(gl.TEXTURE_2D, texture);
+		/**
+		 * 给着色器传值
+		 */
+		 function reassign(gl, program) {
+			 let itemSize = 2;
+		 	//// uniform变量
+		 	// gl.getUninformLocation()方法返回一个对象，表示该uniform变量在内存中的位置
+		 	let uColor = gl.getUniformLocation(program, "uColor"); // 从program中找到uniform变量uColor，然后返回它的内存位置
+		 	// 使用这个位置来完成赋值
+		 	gl.uniform4fv(uColor, [0, 0, 0, 1]); // 给uColor传值
 
-			const level = 0;
-			const internalFormat = gl.RGBA;
-			const width = 1;
-			const height = 1;
-			const border = 0;
-			const srcFormat = gl.RGBA;
-			const srcType = gl.UNSIGNED_BYTE;
-			const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
-			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			gl.texImage2D(
-					gl.TEXTURE_2D,
-					level,
-					internalFormat,
-					width,
-					height,
-					border,
-					srcFormat,
-					srcType,
-					pixel
-			);
-
-			let image = new Image();
-			image.onload = () => {
-				gl.bindTexture(gl.TEXTURE_2D, texture);
-
-				gl.texImage2D(
-						gl.TEXTURE_2D,
-						level,
-						internalFormat,
-						srcFormat,
-						srcType,
-						image
-				);
-
-				if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
-					// Yes, it's a power of 2. Generate mips.
-					gl.generateMipmap(gl.TEXTURE_2D);
-				} else {
-					// No, it's not a power of 2. Turn off mips and set
-					// wrapping to clamp to edge
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-				}
-
-				gl.bindTexture(gl.TEXTURE_2D, null);
-			}
-			image.src = "images/smile.png";
-		}
-
-		function isPowerOf2(value) {
-			return (value & (value - 1)) === 0;
-		}
+		 	//// attribute变量
+		 	// 取得aVertexPosition的内存位置
+		 	let aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+		 	// 启用（地址？）
+		 	gl.enableVertexAttribArray(aVertexPosition);
+		 	// 创建一个指向调用gl.bindBuffer()指定的缓冲区的指针，并把它保存在aVertexPosition中，在后面由顶点着色器使用
+		 	gl.vertexAttribPointer(aVertexPosition, itemSize, gl.FLOAT, false, 0, 0);
+		 }
 	</script>
 </body>
 </html>

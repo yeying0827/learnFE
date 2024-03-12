@@ -1,24 +1,25 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
-    <title>Learning WebGL - 纹理</title>
+	<title>Learning WebGL - GLSL300（升级）</title>
 </head>
 <body>
 	<canvas id="drawing" width="400" height="400"></canvas>
 	<!-- 0.使用自定义type属性的script元素把着色器代码包含在网页中。即使type属性无效，也不妨碍读写其中的内容 -->
 	<!-- OpenGL 着色器语言 -->
 	<!-- 值类型 数据类型 变量名 -->
-	<script type="x-webgl/x-vertex-shader" id="vertexShader">
-		attribute vec2 aVertexPosition; // 顶点着色器
+	<script type="x-webgl/x-vertex-shader" id="vertexShader">#version 300 es
+		in vec2 aVertexPosition; // 顶点着色器
 		void main() {
 			gl_Position = vec4(aVertexPosition, 0.0, 1.0);
 		}
 	</script>
-	<script type="x-webgl/x-fragment-shader" id="fragmentShader">
-		precision mediump float; // 添加如下精度描述
+	<script type="x-webgl/x-fragment-shader" id="fragmentShader">#version 300 es
+		precision mediump float; // 添加如下精度描述，不加这行会看到报错
 		uniform vec4 uColor; // 片段着色器
+		out vec4 fragColor; // 预定义的输出变量gl_FragColor没有了，必须为颜色输出声明自己的out变量
 		void main() {
-			gl_FragColor = uColor;
+			fragColor = uColor;
 		}
 	</script>
 	<script type="text/javascript">
@@ -28,7 +29,7 @@
 		// 确保浏览器支持canvas
 		if(drawing.getContext) {
 			try {
-				gl = drawing.getContext("webgl", { alpha: true });
+				gl = drawing.getContext("webgl2", { preserveDrawingBuffer: true }); /// webgl2!!!
 			} catch(ex) {
 				// ...
 			}
@@ -89,71 +90,65 @@
 				gl.useProgram(program);
 				// 所有后续的绘制操作都会使用这个程序
 
-				drawTexture(gl, program);
-
-				gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+				drawTriangle(gl, program);
+				readPixel(gl);
 			} else {
 				alert("WebGL context could not be created.");
 			}
 		}
 
-		// 绘制纹理
-		function drawTexture(gl, program) {
-			const texture = gl.createTexture();
-			gl.bindTexture(gl.TEXTURE_2D, texture);
+		/**
+		 * 给着色器传值
+		 */
+		 function reassign(gl, program) {
+		 	//// uniform变量
+		 	// gl.getUninformLocation()方法返回一个对象，表示该uniform变量在内存中的位置
+		 	let uColor = gl.getUniformLocation(program, "uColor"); // 从program中找到uniform变量uColor，然后返回它的内存位置
+		 	// 使用这个位置来完成赋值
+		 	gl.uniform4fv(uColor, [0, 0, 0, 1]); // 给uColor传值
 
-			const level = 0;
-			const internalFormat = gl.RGBA;
-			const width = 1;
-			const height = 1;
-			const border = 0;
-			const srcFormat = gl.RGBA;
-			const srcType = gl.UNSIGNED_BYTE;
-			const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
-			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			gl.texImage2D(
-					gl.TEXTURE_2D,
-					level,
-					internalFormat,
-					width,
-					height,
-					border,
-					srcFormat,
-					srcType,
-					pixel
-			);
+		 	//// attribute变量
+		 	// 取得aVertexPosition的内存位置
+		 	let aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+		 	// 启用（地址？）
+		 	gl.enableVertexAttribArray(aVertexPosition);
+		 	// 创建一个指向调用gl.bindBuffer()指定的缓冲区的指针，并把它保存在aVertexPosition中，在后面由顶点着色器使用
+		 	gl.vertexAttribPointer(aVertexPosition, itemSize, gl.FLOAT, false, 0, 0);
+		 }
 
-			let image = new Image();
-			image.onload = () => {
-				gl.bindTexture(gl.TEXTURE_2D, texture);
+		 // 绘制三角形
+		 function drawTriangle(gl, program) {
+		 	// 定义3个顶点的x坐标和y坐标
+		 	let vertices = new Float32Array([0, 1, 1, -1, -1, -1]),
+		 		buffer = gl.createBuffer(),
+		 		vertextSetSize = 2,
+		 		vertextSetCount = vertices.length / vertextSetSize,
+		 		uColor,
+		 		aVertexPosition;
+		 	// 将数据放入缓冲区
+		 	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		 	gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+		 	// 给片段着色器传入颜色
+		 	uColor = gl.getUniformLocation(program, "uColor");
+		 	gl.uniform4fv(uColor, [0, 1, 0, 1]); // 绿色
+		 	// 把顶点信息传给着色器
+		 	aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+		 	gl.enableVertexAttribArray(aVertexPosition);
+		    // 每两个点代表一个顶点信息，三个顶点坐标[0,1]（顶上中间） [1,-1]（右下角） [-1,-1]（左下角）
+		 	gl.vertexAttribPointer(aVertexPosition, vertextSetSize, gl.FLOAT, false, 0, 0);
 
-				gl.texImage2D(
-						gl.TEXTURE_2D,
-						level,
-						internalFormat,
-						srcFormat,
-						srcType,
-						image
-				);
+		 	// 绘制三角形
+		 	gl.drawArrays(gl.TRIANGLES, 0, vertextSetCount);
+		 	// gl.drawArrays(gl.LINE_LOOP, 0, vertextSetCount);
+		 	// gl.drawArrays(gl.LINE_STRIP, 0, vertextSetCount);
+		 }
 
-				if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
-					// Yes, it's a power of 2. Generate mips.
-					gl.generateMipmap(gl.TEXTURE_2D);
-				} else {
-					// No, it's not a power of 2. Turn off mips and set
-					// wrapping to clamp to edge
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-				}
-
-				gl.bindTexture(gl.TEXTURE_2D, null);
-			}
-			image.src = "images/smile.png";
-		}
-
-		function isPowerOf2(value) {
-			return (value & (value - 1)) === 0;
-		}
+		 function readPixel(gl) {
+			 let pixels = new Uint8Array(25*25);
+			 // gl.readPixels(0, 0, 25, 25, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+			 gl.readPixels(0, 0, 15, 15, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+			 console.log(pixels);
+		 }
 	</script>
 </body>
 </html>
