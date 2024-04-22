@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>position: absolute</title>
+    <style>
+        .container {
+            position: relative;
+            background: orange;
+            width: 500px;
+        }
+        .title {
+            position: absolute;
+            top: 0;
+            background: aquamarine;
+        }
+
+        .h-c1 {
+            position: relative;
+            width: 500px;
+            height: 100px;
+            background: #00bd7e;
+        }
+
+        .h-c1-child {
+            position: absolute;
+            width: 300px;
+            left: 50%; /* 相对于父元素的宽度 */
+            transform: translateX(-50%);
+            background-color: #fbf;
+
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="title">我是标题1</div>
+    <div class="content">我是内容我是内容我是内容。天街小雨润如酥，草色遥看近却无，最是一年春好处，绝胜烟柳满皇都。</div>
+</div>
+
+
+
+
+
+
+
+
+
+
+<div class="h-c1">
+    <div class="h-c1-child">
+        <span>谈笑有鸿儒，往来无白丁。谈笑有鸿儒，往来无白丁。</span>
+    </div>
+</div>
+
+<script>
+
+</script>
+</body>
+</html>

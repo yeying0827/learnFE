@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>position: sticky</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            background: orange;
+            height: 100vh;
+            overflow: scroll;
+        }
+        .item {
+            height: 300px;
+            background: #00bd7e;
+            border: 1px solid #333;
+        }
+        .title {
+            position: sticky;
+            top: 10px;
+            height: 30px;
+            line-height: 30px;
+            background: #8cc5ff;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header"></div>
+    <div class="list">
+        <div class="item">
+            <div class="title">列表项111</div>
+        </div>
+        <div class="item">
+            <div class="title">列表项222</div>
+        </div>
+        <div class="item">
+            <div class="title">列表项333</div>
+        </div>
+        <div class="item">
+            <div class="title">列表项444</div>
+        </div>
+        <div class="item">
+            <div class="title">列表项555</div>
+        </div>
+        <div class="item">
+            <div class="title">列表项666</div>
+        </div>
+        <div class="item">
+            <div class="title">列表项777</div>
+        </div>
+        <div class="item">
+            <div class="title">列表项888</div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
