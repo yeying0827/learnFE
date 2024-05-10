@@ -21,7 +21,7 @@
 	<script type="x-webgl/x-fragment-shader" id="fragmentShader">
 		precision mediump float; // 添加如下精度描述
 		uniform sampler2D tMap; // 纹理相关
-		uniform vec4 uColor; // 片段着色器
+
 		varying vec2 vUv;
 
 		void main() {
@@ -98,9 +98,10 @@
 
 				bufferPoints(program);
 				textureAixs(program);
-				useTexture(gl, program);
+				// Load texture
+				loadTexture(gl, program, "images/smile.png");
 
-				drawCells(new Uint16Array([0, 1, 2, 2, 0, 3]));
+				// drawCells(new Uint16Array([0, 1, 2, 2, 0, 3]));
 			} else {
 				alert("WebGL context could not be created.");
 			}
@@ -127,7 +128,7 @@
 		}
 
 		function textureAixs(program) {
-			let vertices = new Float32Array([ // 顶点
+			let vertices = new Float32Array([ // 纹理
 						[0, 0],
 						[0, 1],
 						[1, 1],
@@ -146,11 +147,21 @@
 			gl.vertexAttribPointer(uvPosition, 2, gl.FLOAT, false, 0, 0);
 		}
 
-		// 绘制纹理
-		function useTexture(gl, program) {
+		//
+		// Initialize a texture and load an image.
+		// When the image finished loading copy it into the texture.
+		//
+		function loadTexture(gl, program, url) {
 			const texture = gl.createTexture();
-			gl.bindTexture(gl.TEXTURE_2D, texture);
+			// gl.bindTexture(gl.TEXTURE_2D, texture);
+			// Flip image pixels into the bottom-to-top order that WebGL expects.
+			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
+			// Because images have to be downloaded over the internet
+			// they might take a moment until they are ready.
+			// Until then put a single pixel in the texture so we can
+			// use it immediately. When the image has finished downloading
+			// we'll update the texture with the contents of the image.
 			const level = 0;
 			const internalFormat = gl.RGBA;
 			const width = 1;
@@ -158,59 +169,63 @@
 			const border = 0;
 			const srcFormat = gl.RGBA;
 			const srcType = gl.UNSIGNED_BYTE;
-			const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
-			gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-			gl.texImage2D(
-					gl.TEXTURE_2D,
-					level,
-					internalFormat,
-					width,
-					height,
-					border,
-					srcFormat,
-					srcType,
-					pixel
-			);
+			// const pixel = new Uint8Array([0, 0, 255, 255]); // opaque blue
+			// gl.texImage2D(
+			// 		gl.TEXTURE_2D,
+			// 		level,
+			// 		internalFormat,
+			// 		width,
+			// 		height,
+			// 		border,
+			// 		srcFormat,
+			// 		srcType,
+			// 		pixel,
+			// );
 
-			let image = new Image();
-			image.onload = async () => {
+			const image = new Image();
+			image.onload = () => {
 				gl.bindTexture(gl.TEXTURE_2D, texture);
+				// // Flip image pixels into the bottom-to-top order that WebGL expects.
+				// gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 
-				if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
-					// Yes, it's a power of 2. Generate mips.
-					gl.generateMipmap(gl.TEXTURE_2D);
-				} else {
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-					// No, it's not a power of 2. Turn off mips and set
-					// wrapping to clamp to edge
-					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-					// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-				}
-
-				gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
 				gl.texImage2D(
 						gl.TEXTURE_2D,
 						level,
 						internalFormat,
 						srcFormat,
 						srcType,
-						image
+						image,
 				);
 
+				// WebGL1 has different requirements for power of 2 images
+				// vs. non power of 2 images so check if the image is a
+				// power of 2 in both dimensions.
+				if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+					// Yes, it's a power of 2. Generate mips.
+					gl.generateMipmap(gl.TEXTURE_2D);
+				} else {
+					// No, it's not a power of 2. Turn off mips and set
+					// wrapping to clamp to edge
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+				}
+
+				// 设置使用的纹理
+				gl.activeTexture(gl.TEXTURE0);
+				gl.bindTexture(gl.TEXTURE_2D, texture);
 				// 获取Shader中纹理变量
 				const loc = gl.getUniformLocation(program, "tMap");
 				// 将对应的纹理单元写入Shader变量
 				gl.uniform1i(loc, 0);
 
-				// 设置使用的纹理
-				gl.activeTexture(gl.TEXTURE0 + 0);
-				gl.bindTexture(gl.TEXTURE_2D, texture);
-
 				drawCells(new Uint16Array([0, 1, 2, 2, 0, 3]));
-			}
-			image.src = "images/smile.png";
+				// 解除纹理绑定
+				gl.bindTexture(gl.TEXTURE_2D, null);
+			};
+			image.src = url;
+
+			return texture;
 		}
 
 		function isPowerOf2(value) {

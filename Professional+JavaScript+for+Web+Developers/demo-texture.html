@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <title>Learning WebGL - 纹理</title>
+</head>
+<body>
+<canvas id="drawing" width="400" height="400"></canvas>
+<!-- 0.使用自定义type属性的script元素把着色器代码包含在网页中。即使type属性无效，也不妨碍读写其中的内容 -->
+<!-- OpenGL 着色器语言 -->
+<!-- 值类型 数据类型 变量名 -->
+<script type="x-webgl/x-vertex-shader" id="vertexShader">
+		attribute vec2 aVertexPosition; // 顶点着色器
+		attribute vec2 uv;
+		varying vec2 vUv;
+
+		void main() {
+			vUv = uv;
+			gl_Position = vec4(aVertexPosition,1, 1);
+		}
+	</script>
+<script type="x-webgl/x-fragment-shader" id="fragmentShader">
+		precision mediump float; // 添加如下精度描述
+
+		uniform sampler2D tMap;
+		varying vec2 vUv;
+
+		void main() {
+			gl_FragColor = texture2D(tMap, vUv);
+		}
+	</script>
+<script type="text/javascript">
+    let drawing = document.getElementById("drawing"),
+        gl;
+
+    // 确保浏览器支持canvas
+    if(drawing.getContext) {
+        try {
+            gl = drawing.getContext("webgl", { alpha: true });
+        } catch(ex) {
+            // ...
+        }
+
+        // 确保浏览器支持WebGL
+        if(gl) {
+            //// 使用WebGL
+            // 指定一种实心颜色清除<canvas>
+            gl.clearColor(0, 0, 0, 1); // 黑色
+            gl.clear(gl.COLOR_BUFFER_BIT); // 告诉WebGL使用之前定义的颜色填充画布
+
+            //// 定义WebGL视口
+            gl.viewport(0, 0, drawing.width, drawing.height); // 相当于使用整个<canvas>元素
+
+            //// 创建缓冲区
+            let buffer = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer); // 将buffer设置为上下文的当前缓冲区
+            // gl.bufferData()虽然没有包含对buffer的直接引用，但仍然是在它上面执行
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0.5, 1]), gl.STATIC_DRAW); // 使用一个Float32Array（包含所有顶点信息）初始化了buffer
+
+            //// 创建着色器
+            // 1.要使用着色器，必须先拿到GLSL代码的字符串
+            let vertexGlsl = document.getElementById("vertexShader").text,
+                fragmentGlsl = document.getElementById("fragmentShader").text;
+            // 2.创建shader对象，调用gl.createShader()，传入参数为着色器类型
+            let vertexShader = gl.createShader(gl.VERTEX_SHADER);
+            let fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+            // 3.调用gl.shaderSource()方法把GLSL代码应用到着色器
+            gl.shaderSource(vertexShader, vertexGlsl);
+            gl.shaderSource(fragmentShader, fragmentGlsl);
+            // 4.调用gl.compileShader()编译着色器
+            gl.compileShader(vertexShader);
+            gl.compileShader(fragmentShader);
+
+            //// 调试着色器（用于开发时辅助调试）
+            // 如果gl.getShaderParameter()用于取得编译之后的编译状态，返回false，说明编译出错
+            if(!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))	{
+                console.log(gl.getShaderInfoLog(vertexShader)); // 取得错误信息
+            }
+            if(!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS))	{
+                console.log(gl.getShaderInfoLog(fragmentShader)); // 取得错误信息
+            }
+
+            // 5.把两个对象链接到着色器程序
+            let program = gl.createProgram();
+            gl.attachShader(program, vertexShader); // 添加着色器
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program); // 将两个着色器链接到变量program中
+
+            //// 调试着色器程序（用于开发时辅助调试）
+            // gl.getProgramParameter()用于检测状态，返回false，说明链接失败
+            // 最常见的程序错误发生在链接阶段
+            if(!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+                console.log(gl.getProgramInfoLog(program)); // 获取错误信息
+            }
+
+            // 6.链接到程序之后，就可以通过gl.useProgram()方法让WebGL上下文使用这个程序了
+            gl.useProgram(program);
+            // 所有后续的绘制操作都会使用这个程序
+
+            bufferPoints(program);
+            textureAixs(program);
+            // Load texture
+            loadTexture(gl, program, "images/smile.png");
+
+            // drawCells(new Uint16Array([0, 1, 2, 2, 0, 3]));
+        } else {
+            alert("WebGL context could not be created.");
+        }
+    }
+
+    function bufferPoints(program) {
+        let vertices = new Float32Array([ // 顶点
+                [-1, -1],
+                [-1, 1],
+                [1, 1],
+                [1, -1]
+            ].flat()),
+            buffer = gl.createBuffer();
+        // 将数据放入缓冲区
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+        //// attribute变量
+        // 取得aVertexPosition的内存位置
+        let aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+        // 启用（地址？）
+        gl.enableVertexAttribArray(aVertexPosition);
+        // 创建一个指向调用gl.bindBuffer()指定的缓冲区的指针，并把它保存在aVertexPosition中，在后面由顶点着色器使用
+        gl.vertexAttribPointer(aVertexPosition, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    function textureAixs(program) {
+        let vertices = new Float32Array([ // 纹理
+                [0, 0],
+                [0, 1],
+                [1, 1],
+                [1, 0]
+            ].flat()),
+            buffer = gl.createBuffer();
+        // 将数据放入缓冲区
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+        //// attribute变量
+        // 取得aVertexPosition的内存位置
+        let uvPosition = gl.getAttribLocation(program, "uv");
+        // 启用（地址？）
+        gl.enableVertexAttribArray(uvPosition);
+        // 创建一个指向调用gl.bindBuffer()指定的缓冲区的指针，并把它保存在uvPosition中，在后面由顶点着色器使用
+        gl.vertexAttribPointer(uvPosition, 2, gl.FLOAT, false, 0, 0);
+    }
+
+    //
+    // Initialize a texture and load an image.
+    // When the image finished loading copy it into the texture.
+    //
+    function loadTexture(gl, program, url) {
+		// 创建纹理对象
+        const texture = gl.createTexture();
+        // Flip image pixels into the bottom-to-top order that WebGL expects.
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+		// 将纹理绑定到当前上下文
+		gl.bindTexture(gl.TEXTURE_2D, texture);
+
+        // Because images have to be downloaded over the internet
+        // they might take a moment until they are ready.
+        // Until then put a single pixel in the texture so we can
+        // use it immediately. When the image has finished downloading
+        // we'll update the texture with the contents of the image.
+        const level = 0;
+        const internalFormat = gl.RGBA;
+        const srcFormat = gl.RGBA;
+        const srcType = gl.UNSIGNED_BYTE;
+
+        const image = new Image();
+        image.onload = () => {
+
+			// 指定纹理图像
+            gl.texImage2D(
+					gl.TEXTURE_2D,
+					level,
+					internalFormat,
+					srcFormat,
+					srcType,
+					image
+			);
+
+            // WebGL1 has different requirements for power of 2 images
+            // vs. non power of 2 images so check if the image is a
+            // power of 2 in both dimensions.
+            if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+                // Yes, it's a power of 2. Generate mips.
+                gl.generateMipmap(gl.TEXTURE_2D);
+            } else {
+                // No, it's not a power of 2. Turn off mips and set
+                // wrapping to clamp to edge
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            }
+
+			// 激活纹理
+            gl.activeTexture(gl.TEXTURE0);
+			// 绑定纹理
+			gl.bindTexture(gl.TEXTURE_2D, texture);
+
+			// 获取Shader中纹理变量
+			const loc = gl.getUniformLocation(program, "tMap");
+			// 将对应的纹理单元写入Shader变量
+			gl.uniform1i(loc, 0);
+
+            drawCells(new Uint16Array([0, 1, 2, 2, 0, 3]));
+            // 解除纹理绑定
+            gl.bindTexture(gl.TEXTURE_2D, null);
+        };
+        image.src = url;
+
+        return texture;
+    }
+
+    function isPowerOf2(value) {
+        return (value & (value - 1)) === 0;
+    }
+
+    function drawCells(cells,
+                       mode,
+                       clear = true) {
+        const cellBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cellBuffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cells, gl.STATIC_DRAW);
+
+        // 执行着色器程序完成绘制
+        // if (clear) gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.drawElements(mode || gl.TRIANGLES, cells.length, gl.UNSIGNED_SHORT, 0);
+    }
+</script>
+</body>
+</html>
