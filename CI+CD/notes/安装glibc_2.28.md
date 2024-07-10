@@ -14,14 +14,53 @@ rpm -qa | grep glibc
 
 [升级glibc](https://blog.csdn.net/u012149637/article/details/112968173)
 
-1. 安装gcc-8.2.0依赖环境
+1. 安装glibc
+
+   ```shell
+   wget https://ftp.gnu.org/gnu/glibc/glibc-2.27.tar.gz
+   tar -xvf glibc-2.27.tar.gz
+   
+   ## 编译安装
+   # 进入glibc-2.27目录中
+   cd glibc-2.27
+   # 创建build目录
+   mkdir build
+   # 进入build目录
+   cd build
+   # 执行./configure
+   ../configure --prefix=/usr --disable-profile --enable-add-ons --with-headers=/usr/include --with-binutils=/usr/bin
+   # 安装
+   make && make install
+   
+   ## 查看共享库
+   ls -l /lib64/libc.so.6
+   
+   ## 再次查看系统中可使用的glibc版本
+   strings /lib64/libc.so.6 |grep GLIBC_
+   ```
+
+   `执行./confiure`报错：These critical programs are missing or too old: bison compiler
+
+   [安装`bison`](https://www.cnblogs.com/liujiaxin2018/p/13196207.html)：`yum install bison`
+
+   继续执行`./configure`还是报错：These critical programs are missing or too old: compiler
+
+   [gcc编译器版本过低](https://blog.csdn.net/qq_41054313/article/details/119453248)
+
+2. 升级太高升到gcc-11.2.0去了。。
+
+   [CentOS7 编译安装 gcc11.2](https://blog.csdn.net/weixin_45661908/article/details/123928463)
+
+   gcc11.2版本太高，无法编译glibc2.28（😓），重新安装gcc8.2
+
+3. 安装gcc-8.2.0依赖环境
 
    ```shell
    yum install bison -y
    yum -y install wget bzip2 gcc gcc-c++ glib-headers
    ```
 
-2. 升级GNU make到make 4.2
+4. 升级GNU make到make 4.2
 
    ```shell
    wget http://ftp.gnu.org/gnu/make/make-4.2.1.tar.gz
@@ -46,7 +85,7 @@ rpm -qa | grep glibc
    make -v
    ```
 
-3. 安装Python3.8
+5. 安装Python3.8
 
    ```shell
    wget https://www.python.org/ftp/python/3.8.0/Python-3.8.0.tar.xz
@@ -104,7 +143,7 @@ rpm -qa | grep glibc
      sudo yum install zlib-devel bzip2 bzip2-devel readline-devel sqlite sqlite-devel openssl-devel xz xz-devel libffi-devel
      ```
 
-4. 安装gcc8.2.0
+6. 安装gcc8.2.0
 
    ```shell
    # 下载并解压
@@ -127,7 +166,7 @@ rpm -qa | grep glibc
    "/usr/include/gcc/include" -> "/usr/local/gcc-8.2.0/include/"
    ```
 
-5. 由于之前安装了gcc11.2需要做一下修改
+7. 由于之前安装了gcc11.2需要做一下修改
 
    ```shell
    # 应用环境变量
@@ -149,7 +188,7 @@ rpm -qa | grep glibc
    reboot
    ```
 
-6. 配置glibc2.28还是报错compiler
+8. 配置glibc2.28还是报错compiler
 
    ```shell
    # 尝试昨天失败的命令
@@ -160,7 +199,7 @@ rpm -qa | grep glibc
 
    <img src="../glibc2.28配置成功.png" alt="glibc2.28配置成功" style="zoom:50%;" />
 
-7. 编译
+9. 编译
 
    ```shell
    sudo make 
@@ -173,7 +212,7 @@ rpm -qa | grep glibc
 
    可以不用管
 
-8. 验证是否成功
+10. 验证是否成功
 
    ```shell
    [yy@localhost build]$ strings /usr/local/gcc-8.2.0/lib64/libstdc++.so.6 | grep GLIBCXX_

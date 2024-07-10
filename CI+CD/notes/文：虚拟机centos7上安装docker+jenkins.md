@@ -1,60 +1,59 @@
-## 安装Docker和Jekins：持续构建环境起步
+## 虚拟机centos7上安装docker+jenkins
 
-### Docker
+学习某册子的CICD时，安装了docker和jenkins，记录的安装过程和中间碰到的问题。
 
-#### 1. 什么是Docker
+使用的虚拟机为Parallels Desktop，配置为2核4G，系统为centos 7，[下载地址](https://mirrors.aliyun.com/centos/7.9.2009/isos/x86_64/CentOS-7-x86_64-Minimal-2009.iso)。
 
-`Docker`是一个开源的应用容器引擎。
-
-开发者可以将自己的应用打包在自己的镜像里面，然后迁移到其他平台的`Docker`中。镜像中可以存放你自己自定义的运行环境、文件、代码、设置等等内容，再也不用担心环境造成的运行问题。
-
-镜像共享运行机器的系统内核。（封装的进程？数据+资源）
-
-`Docker`支持跨平台，你的镜像也可以加载在`windows`和`linux`，实现快速运行和部署。
-
-`Docker`的优势在于快速、轻量、灵活。开发者可以制作一个自己自定义的镜像，也可以使用官方或者其他开发者的镜像来启动一个服务。通过将镜像创建为容器，容器之间相互隔离资源和进程不冲突，但硬件资源又是共享的。创建的镜像可以通过文件快速分享，也可以上传到镜像库进行存取和管理。
-
-同时`Docker`的镜像有`分层策略`，每次对镜像的更新操作，都会堆叠一个新层。当你拉取/推动新版本镜像时，只推送/拉取修改的部分，大大加快了镜像的传输效率。
-
-#### 2. Docker在CI/CD中的作用
-
-`Docker`贯穿`CI/CD`中整个流程，作为应用服务的载体有着非常重要的地位。
-
-可以使用`Docker`将应用打包成一个镜像，交给`Kubernetes`去部署在目标服务集群。并且可以将镜像上传到自己的镜像仓库，做好版本分类处理。
-
-#### 3. 安装Docker
+### 安装docker
 
 在开始安装之前，需要安装`device-mapper-persistent-data`和`lvm2`两个依赖。
 
-> `device-mapper-persistent-data`是`Linux`下的一个存储驱动，`Linux`上的高级存储技术。`lvm`的作用则是创建逻辑磁盘分区。
+* `device-mapper-persistent-data`是`Linux`下的一个存储驱动，`Linux`上的高级存储技术。
+* `lvm`的作用则是创建逻辑磁盘分区。
 
-这里使用`CentOS`的`Yum`包管理器安装两个依赖：
+#### 1. 安装依赖
 
-`yum install -y yum-utils device-mapper-persistent-data lvm2`
+使用`CentOS`的`Yum`包管理器安装两个依赖：
+
+```shell
+yum install -y yum-utils device-mapper-persistent-data lvm2
+```
 
 依赖安装完毕后，将阿里云的`Docker`镜像源添加进去。可以加速`Docker`的安装：
 
-`sudo yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo`
+```shell
+sudo yum-config-manager --add-repo http://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
+```
 
-`yum install docker-ce -y`
+<img src="../add-aliyun-docker-mirrors.png" alt="添加阿里云镜像云" style="zoom:50%;" />
 
-![添加阿里云镜像源](../add-aliyun-docker-mirrors.png)
+#### 2. 安装docker
+
+```shell
+yum install docker-ce -y
+```
 
 <img src="../downloading-packages.png" alt="下载docker" style="zoom:50%;" />
 
 <img src="../docker-installed.png" alt="docker安装完毕" style="zoom:50%;" />
 
+#### 3. 启动docker
+
 安装完毕，就可以使用`systemctl`命令来启动`Docker`了。`systemctl`是`Linux`的进程管理服务命令，可以帮助我们启动`docker`。
 
-`systemctl start docker`
+```shell
+systemctl start docker
+```
 
-`systemctl enable docker`
+```shell
+systemctl enable docker
+```
 
 <img src="../enable-docker.png" alt="enable docker" style="zoom:50%;" />
 
-接着执行一下`docker -v`，可以用来查看`Docker`安装的版本信息。也可以帮助我们查看`docker`的安装状态；如果正常展示版本信息，代表`Docker`已经安装成功。
+执行一下`docker -v`，可以用来查看`Docker`安装的版本信息。也可以帮助我们查看`docker`的安装状态；如果正常展示版本信息，代表`Docker`已经安装成功。
 
-**关于配置阿里云镜像源**
+#### 4.  关于配置阿里云镜像源
 
 在`Docker`安装完毕后，之后我们去拉取`docker`镜像时，一般默认会去`docker`官方源拉取镜像。但是外网比较慢，所以更换为`阿里云镜像仓库`源进行镜像下载加速。
 
@@ -73,23 +72,25 @@ EOF
 
 <img src="../restart-docker.png" alt="restart docker" style="zoom:50%;" />
 
-### Jenkins
+### 安装jenkins
 
 安装完`Docker`后，我们只是拥有了一个可以承载服务的载体。想实现自动化构建，还需要安装一个构建工具`Jenkins`。
 
-#### 1. 什么是Jenkins
-
 `Jenkins`是一个基于`Java`语言开发的持续构建工具平台，主要用于持续、自动地构建/测试你的软件和项目。它可以执行你预先设定好的设置和构建脚本，也可以和Git代码库做集成，实现自动触发和定时触发构建。
 
-#### 2. 安装OpenJDK
+#### 1. 安装Java
 
 因为`Jenkins`是`Java`编写的持续构建平台，所以安装`Java`必不可少。
 
-`openjdk`是`SunJDK`的一种开源实现。[openjdk和sunjdk的具体区别](https://www.zhihu.com/question/19646618)。直接使用`yum`包管理器安装`openjdk`即可。
+`openjdk`是`SunJDK`的一种开源实现。[openjdk和sunjdk的具体区别](https://www.zhihu.com/question/19646618)。
 
-`yum install -y java`
+直接使用`yum`包管理器安装`openjdk`即可：
 
-#### 3. 使用yum安装Jenkins
+```shell
+yum install -y java
+```
+
+#### 2. 使用yum安装Jenkins
 
 由于`yum`源不自带`Jenkins`的安装源，我们需要自己导入一份`Jenkins`安装源进行安装。导入后，使用`yum`命令安装即可。
 
@@ -99,9 +100,9 @@ rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
 yum install jenkins
 ```
 
-wget后面的参数是大写O
+注：wget后面的参数是大写O
 
-#### 4. 启动Jenkins
+#### 3. 启动Jenkins
 
 `Jenkins`安装后，会将启动命令注册到系统`Service`命令中。所以直接使用系统`service`命令启动`Jenkins`即可。有三个命令可以使用，分别对应启动/重启/停止。
 
@@ -113,7 +114,7 @@ service jenkins start # 启动Jenkins
 
 <img src="../start-jenkins.png" alt="start jenkins" style="zoom:50%;" />
 
-#### 5. 给Jenkins放行端口
+#### 4. 给jenkins放行端口
 
 在启动`Jenkins`后，`Jenkins`会开启它的默认端口8080。但由于防火墙限制，我们需要手动让防火墙放行8080端口才能对外访问到界面。
 
@@ -130,51 +131,51 @@ systemctl reload firewalld
 
 服务启动后，访问`IP:8080`。`Jenkins`第一次启动时间一般比较长（看服务器性能）
 
-<img src="../jenkins-start.png" alt="初始化jenkins" style="zoom:50%;" />
+<img src="../jenkins-start.png" alt="jenkins start" style="zoom:50%;" />
 
+#### 5. 初始化jenkins配置
 
+* 解锁jenkins
 
-#### 6. 初始化Jenkins配置
+  在`Jenkins`启动完成后，会自动跳转至下面这个界面。这是`Jenkins`的解锁界面，你需要输入存放在服务器的初始解锁密码才能进行下一步操作。
 
-##### 6.1 解锁Jenkins
+  <img src="../unlock-jenkins.png" alt="unlock jenkins" style="zoom:50%;" />
 
-在`Jenkins`启动完成后，会自动跳转至下面这个界面。这是`Jenkins`的解锁界面，你需要输入存放在服务器的初始解锁密码才能进行下一步操作。
+  `Jenkins`启动后，会生成一个初始密码。该密码在服务器的文件内存放，我们可以进入服务器查看密码内容，将密码填写在`Jenkins`的管理员密码输入框内：
 
-<img src="../unlock-jenkins.png" alt="unlock jenkins" style="zoom:50%;" />
+  ```shell
+  cat /var/lib/jenkins/secrets/initialAdminPassword
+  ```
 
-`Jenkins`启动后，会生成一个初始密码。该密码在服务器的文件内存放，我们可以进入服务器查看密码内容，将密码填写在`Jenkins`的管理员密码输入框内：
+  点击`继续`按钮，解锁Jenkins。
 
-`cat /var/lib/jenkins/secrets/initialAdminPassword`
+* 下载插件
 
-点击`继续`按钮，解锁Jenkins。
+  解锁后就到了插件下载页面，这一步要下载一些`Jenkins`的功能插件。
 
-##### 6.2 下载插件
+  <img src="../install-plugin.png" alt="install-plugin" style="zoom:50%;" />
 
-解锁后就到了插件下载页面，这一步要下载一些`Jenkins`的功能插件。
+  因为`Jenkins`插件服务器在国外，所以速度不太理想。需要更换为清华大学的`Jenkins`插件源，再安装插件。
 
-<img src="../install-plugin.png" alt="plugins" style="zoom:50%;" />
+  更换方法：进入服务器，将`/var/lib/jenkins/updates/default.json`内的插件源地址替换成清华大学的源地址，将google替换为baidu即可。
 
-因为`Jenkins`插件服务器在国外，所以速度不太理想。需要更换为清华大学的`Jenkins`插件源，再安装插件。
+  ```shell
+  sed -i 's/http:\/\/updates.jenkins-ci.org\/download/https:\/\/mirrors.tuna.tsinghua.edu.cn\/jenkins/g' /var/lib/jenkins/updates/default.json && sed -i 's/http:\/\/www.google.com/https:\/\/www.baidu.com/g' /var/lib/jenkins/updates/default.json
+  ```
 
-更换方法：进入服务器，将`/var/lib/jenkins/updates/default.json`内的插件源地址替换成清华大学的源地址，将google替换为baidu即可。
+  接着点击`安装推荐的插件`即可。
 
-```shell
-sed -i 's/http:\/\/updates.jenkins-ci.org\/download/https:\/\/mirrors.tuna.tsinghua.edu.cn\/jenkins/g' /var/lib/jenkins/updates/default.json && sed -i 's/http:\/\/www.google.com/https:\/\/www.baidu.com/g' /var/lib/jenkins/updates/default.json
-```
+  <img src="../install-plugins.png" alt="install plugins" style="zoom:50%;" />
 
-接着点击`安装推荐的插件`即可。
-
-<img src="../install-plugins.png" alt="安装插件" style="zoom:50%;" />
-
-#### 7. 完成安装
+#### 6. 安装完毕
 
 插件安装完毕后，接着是注册管理员账号。按照提示一路配置后，直到看到以下界面代表安装成功。
 
-<img src="../install-success.png" alt="安装完成" style="zoom:50%;" />
+<img src="../install-success.png" alt="install success" style="zoom:50%;" />
 
-#### 8. 测试安装
+### 整体安装结果测试
 
-到这里Jenkins算是启动成功了。但是还需要对`Jenkins`做一点简单的配置，才可以让它构建`docker`镜像。
+Jenkins算是启动成功了。但是还需要对`Jenkins`做一点简单的配置，才可以让它构建`docker`镜像。
 
 点击`Jenkins`首页->左侧导航->新建任务->Freestyle project
 
@@ -189,11 +190,11 @@ docker pull node:latest
 
 保存后，我们点击左侧菜单的**立即构建**，`Jenkins`就会开始构建。选择左侧历史记录第一项（最新），点击控制台输出，查看构建日志。
 
-<img src="../build-fail.png" alt="failed" style="zoom:50%;" />
+<img src="../build-fail.png" alt="build fail" style="zoom:50%;" />
 
 执行后，发现提示无访问权限。这里就涉及到`Linux`下的`Unix Socket`权限问题
 
-#### 9. Unix Socket权限问题
+#### Unix Socket权限问题
 
 `docker`的架构是`C/S`架构。使用`docker`命令时，其实是命令使用`socket`与`docker`的守护进程进行通信，才能正常执行`docker`命令。
 
@@ -211,14 +212,13 @@ gpasswd -a jenkins docker  # 将当前用户添加至docker用户组
 newgrp docker              # 更新docker用户组
 ```
 
-加入后，重启`Jenkins`:
+加入后，重启`Jenkins`：
 
-`service jenkins restart`
+```shell
+service jenkins restart
+```
 
 重启`Jenkins`后，再次执行脚本，此时执行成功。
 
-<img src="../build-success.png" alt="build success" style="zoom:50%;" />
+<img src="../build-success.png" alt="build-success" style="zoom:50%;" />
 
-jenkins账号密码：admin d48ff41b60834e91a87bf8788217863e
-
-虚拟机账号密码：yy 123456
