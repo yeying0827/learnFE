@@ -37,7 +37,7 @@ summary：
 
 一般计算机显示器的屏幕刷新率都是60Hz，意味着每秒需要重绘60次。重绘频率超过刷新率，用户也感知不到，大多数浏览器会限制。
 
-故，实现平滑动画最佳的重绘间隔为1000毫秒/60，大约17毫秒。如果同时运行多个动画，可能需要加以限流。
+故，**实现平滑动画最佳的重绘间隔为1000毫秒/60，大约17毫秒。**如果同时运行多个动画，可能需要加以限流。
 
 无论`setInterval()`还是`setTimeout()`都是不能保证时间精度的。第二个参数只能保证何时把代码添加到浏览器的任务队列，不能保证执行时间。
 
@@ -479,3 +479,582 @@ globalCompositeOperation属性，表示新绘制的形状如何与上下文中�
 
 不同浏览器的实现可能存在差异，如果使用需要进行兼容性测试
 
+
+
+
+
+### WebGL
+
+画布的3D上下文。不是W3C制定的标准，而是Khronos Group的标准。
+
+作为浏览器中WebGL基础的OpenGL ES2.0，要使用WebGL最好熟悉它，因为很多概念可以照搬过来。
+
+一个WebGL教程网站：[Learn WebGL](http://learnwebgl.brown37.net/)
+
+注：定型数组是在WebGL中执行操作的重要数据结构
+
+#### WebGL上下文
+
+在完全支持的浏览器中，WebGL2.0上下文的名字叫“webgl2”，WebGL1.0上下文的名字叫“webgl1”。如果浏览器不支持WebGL，则尝试访问WebGL上下文会返回null。**在使用之前，应该先检测返回值是否存在**：
+
+```javascript
+let drawing = document.getElementById("drawing");
+
+if(drawing.getContext) {
+  let gl = drawing.getContext("webgl");
+  
+  if(gl) {
+    // 使用WebGl
+  }
+}
+```
+
+大多数WebGL应用和例子遵循约定：把WebGL Context对象命名为gl，因为OpenGL ES 2.0方法和值通常以“gl”开头。这样可以让JavaScript代码看起来更接近OpenGL程序。
+
+#### WebGL基础
+
+取得WebGL上下文后，就可以开始3D绘图了。
+
+WebGL中涉及的概念，实际上是JavaScript所实现的OpenGL概念
+
+在**调用getContext()取得WebGL上下文时可以指定一些选项。**这些选项通过一个参数对象传入，选项就是这个参数对象的一个或多个属性。
+
+* alpha：布尔值，表示是否为上下文创建透明通道缓冲区，默认true。
+* depth：布尔值，表示是否使用16位深缓冲区，默认true。
+* stencil：布尔值，表示是否使用8位模板缓冲区，默认false。
+* antialias：布尔值，表示是否使用默认机制执行**抗锯齿操作**，默认true。
+* premultipliedAlpha：布尔值，表示绘图缓冲区是否预乘透明度值，默认true。
+* preserveDrawingBuffer：布尔值，表示绘图完成后是否保留绘图缓冲区，默认false。（建议充分了解后再修改，可能会影响性能）
+
+这些上下文选项大部分适合开发高级功能。
+
+**某些浏览器调用getContext()不能创建WebGL上下文，会抛出错误**，故最好使用try/catch块包装：
+
+```javascript
+let drawing = document.getElementById("drawing"),
+    gl;
+
+// 确保浏览器支持<canvas>
+if(drawing.getContext) {
+  try {
+    gl = drawing.getContext("webgl", { alpha: false });
+  } catch(ex) {
+    // do nothing
+  }
+  if(gl) {
+    // use WebGL
+  } else {
+    alert("WebGL context could not be created.");
+  }
+}
+```
+
+##### 1. 常量
+
+在OpenGL中以GL_xxx开头（如GL_COLOR_BUFFER_BIT）；
+
+在WebGL中以context对象的属性方式gl.xxx访问（如gl.COLOR_BUFFER_BIT，不包含GL_前缀）。WebGL支持大部分OpenGL常量
+
+##### 2. 方法命名
+
+很多方法会包含相关的数据类型信息。接收不同类型和不同数量参数的方法，会通过**方法名的后缀**体现这些信息。
+
+表示参数数量的数字（1~4）在先，表示数据类型的字符串（“f“浮点数，”i“整数）在后。
+
+如：gl.uniform4f()——需要4个浮点数值参数，gl.uniform3i()——需要3个整数值参数
+
+另外接收数组，这类方法用字母”v“（vector）来表示，如：gl.uniform3iv()——需要一个包含3个整数值的数组参数
+
+##### 3. 准备绘图
+
+准备**使用WebGL上下文之前，通常需要先指定一种实心颜色清除`<canvas>`**。为此，需要调用clearColor()方法并传入4个参数，分别表示红、绿、蓝与透明度值，每个参数必须是0~1范围内的值，表示各个组件在最终颜色的强度。如：
+
+```javascript
+gl.clearColor(0, 0, 0, 1); // 黑色
+gl.clear(gl.COLOR_BUFFER_BIT);
+```
+
+以上代码将**清理颜色缓冲区的值**（？不明白干啥用的）设置为黑色，然后调用clear()方法（这个方法相当于OpenGL中的glClear()方法）。参数gl.COLOR_BUFFER_BIT告诉WebGL使用之前定义的颜色填充画布。
+
+**通常，所有绘图操作之前都需要先清除绘制区域。**
+
+##### 4. 视口与坐标
+
+**绘图前还要定义WebGL视口**。
+
+默认情况下，视口使用整个`<canvas>`区域。要改变视口，可以调用viewport()方法并传入视口相对于`<canvas>`元素的x、y坐标及宽度和高度。如：
+
+```javascript
+gl.viewport(0, 0, drawing.width, drawing.height); // 相当于使用整个<canvas>元素
+```
+
+以上定义的视口的x和y坐标起点(0, 0)表示`<canvas>`元素的**左下角**，向上、向右增长，可以用点(width-1, height-1)定义。
+
+使用`<canvas>`元素的一部分来绘图，例子：
+
+```javascript
+gl.viewport(0, drawing.height/2, drawing.width/2, drawing.height/2); // 视口是左上角四分之一
+```
+
+视口自身的坐标系统中，坐标原点(0, 0)是**视口的中心点**。左下角是(-1, -1)，右上角是(1, 1)。
+
+如果绘图时使用了视口外部的坐标，则绘制结果会被视口剪切。
+
+##### 5. 缓冲区
+
+在JavaScript中，**顶点信息**保存在定型数组中。要**使用这些信息，必须先把它们转换为WebGL缓冲区**。
+
+使用步骤：
+
+1）创建缓冲区。调用gl.createBuffer()方法；
+
+2）将缓冲区绑定到WebGL上下文。调用gl.bindBuffer()方法；
+
+3）用数据填充缓冲区。所有缓冲区操作都在buffer上直接执行。
+
+例子：
+
+```javascript
+let buffer = gl.createBuffer(); // 创建缓冲区
+gl.bindBuffer(gl.ARRAY_BUUFER, buffer); // 将buffer设置为上下文的当前缓冲区
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([0, 0.5, 1]), gl.STATIC_DRAW); // 虽然没有包含对buffer的直接引用，但仍然是在它上面执行
+
+// 上例中，使用一个Float32Array（通常把所有顶点信息保存在Float32Array中）初始化了buffer。如果想输出缓冲区内容，可以调用drawElements()方法并传入gl.ELEMENT_ARRAY_BUFFER。
+```
+
+gl.bufferData()方法的最后一个参数表示如何使用缓冲区。可以是下列值：
+
+* gl.STATIC_DRAW：数据加载一次，可以在多次绘制中使用；
+* gl.STREAM_DRAW：数据加载一次，只能在几次绘制中使用；
+* gl.DYNAMIC_DRAW：数据可以重复修改，在多次绘制中使用
+
+大多数情况下对缓冲区使用gl.STATIC_DRAW
+
+缓冲区会一直驻留在内存中，直到页面卸载。如果不再需要缓冲区，最好调用gl.deleteBuffer()方法释放其占用的内存：
+
+`gl.deleteBuffer(buffer);`
+
+##### 6. 错误
+
+**在WebGL操作中通常不会抛出错误**。必须在调用可能失败的方法后，调用gl.getError()方法。这个方法返回一个常量，表示发生的错误类型。可以是下列值：
+
+* gl.NO_ERROR：上一次操作没有发生错误（0值）；
+* gl.INVALID_ENUM：上一次操作没有传入WebGL预定义的常量；
+* gl.INVALID_VALUE：上一次操作需要无符号数值，但是传入了负数；
+* gl.INVALID_OPERATION：上一次操作在当前状态下无法完成；
+* gl.OUT_OF_MEMORY：上一次操作因内存不足而无法完成
+* gl.CONTEXT_LOST_WEBGL：上一次操作因外部事件（如设备掉电）而丢失了WebGL上下文
+
+每次调用gl.getError()方法会返回一个错误值。第一次调用之后，再调用gl.getError()可能会返回另一个错误值。如果有多个错误，则可以重复这个过程，循环调用getError()，直到返回gl.NO_ERROR。如：
+
+```javascript
+let errorCode = gl.getError();
+while(errorCode) {
+  console.log("Error occurred: " + errorCode);
+  errorCode = gl.getError();
+}
+```
+
+如果WebGL代码没有产出想要的输出结果，那么可以调用几次getError()，有可能找到问题所在。
+
+##### 7. 着色器
+
+[codepen-webgl](https://codepen.io/yeying0827/pen/mdQGbYQ)
+
+**顶点着色器**，用于把3D顶点转换为可以渲染的2D点。
+
+**片段（或像素）着色器**，用于计算绘制一个像素的正确颜色。
+
+不是JavaScript实现的，使用GLSL（OpenGL Shading Language，类C语言）编写。因为WebGL是OpenGL ES 2的实现，所以OpenGL中的着色器可以直接在WebGL中使用，这让桌面应用可以更方便地移植到Web上。
+
+* 编写着色器
+
+  GLSL专门用于编写OpenGL着色器
+
+  每个着色器都有一个`main()`方法，在绘制期间会**重复**执行。给着色器传递数据的方式有两种：attribute和uniform。
+
+  attribute：用于将顶点传入顶点着色器，
+
+  uniform：用于将常量值传入任何着色器
+
+  定义方式：值类型关键字（attribute或uniform） 数据类型 变量名
+
+  ```html
+  <!-- OpenGL 着色器语言 -->
+  <!-- 值类型 数据类型 变量名 -->
+  <script type="x-webgl/x-vertex-shader" id="vertexShader">
+  		attribute vec2 aVertexPosition; // 顶点着色器，vec2：包含两项的数组
+  		void main() {
+  			gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+  		}
+  </script>
+  <script type="x-webgl/x-fragment-shader" id="fragmentShader">
+  		precision mediump float; // 添加如下精度描述，不加会报错
+  		uniform vec4 uColor; // 片段着色器
+  		void main() {
+  			gl_FragColor = uColor;
+  		}
+  </script>
+  ```
+
+  vec2表示aVertexPosition是一个包含两项的数组（数据类型为vec2），代表x和y坐标。这个着色器创建了一个新的包含4项的数组（vec4），缺少的坐标会补充上，把2D坐标转换为了3D坐标。
+
+  片段着色器必须返回一个值保存到变量gl_FragColor中，表示绘制时使用的颜色。vec4包含颜色的4个组件（rgba），uColor的值在着色器内不能改变。
+
+* 创建着色器程序
+
+  浏览器并不理解原生GLSL代码，所以GLSL代码的字符串必须经过编译并链接到一个着色器程序中。使用步骤：
+
+  0. 通常使用带有自定义type属性的`<script>`元素把着色器代码包含在网页中。如果type属性无效，则浏览器不会解析`<script>`的内容，但这并不妨碍读写其中的内容。（更复杂的WebGL应用可以动态加载着色器）
+
+  1. 要使用着色器，必须先拿到GLSL代码的字符串。
+
+     ```javascript
+     let vertexGlsl = document.getElementById("vertexShader").text;
+     ```
+
+  2. 下一步是创建shader对象（着色器）。调用`gl.createShader`方法，入参为想要创建的着色器类型（gl.VERTEX_SHADER或gl.FRAGMENT_SHADER）。
+
+     ```javascript
+     let vertexShader = gl.createShader(gl.VERTEX_SHADER);
+     ```
+
+  3. 调用`gl.shaderSource()`方法把GLSL代码应用到着色器
+
+     ```javascript
+     gl.shaderSource(vertexShader, vertexGlsl);
+     ```
+
+  4. 调用`gl.compileShader()`编译着色器
+
+     ```javascript
+     gl.compileShader(vertexShader);
+     ```
+
+  5. 把shader对象链接到着色器程序。`gl.linkProgram()`
+
+     ```javascript
+     let program = gl.createProgram(); // 创建着色器程序
+     gl.attachShader(program, vertexShader); // 添加着色器
+     gl.attachShader(program, fragmentShader);
+     gl.linkProgram(program); // 将两个着色器链接到变量program中
+     ```
+
+  6. 链接到程序之后，就可以通过`gl.useProgram()`方法让WebGL上下文使用这个程序了，所有后续的绘制操作都会使用这个程序。
+
+     ```javascript
+     gl.useProgram(program);
+     ```
+
+* 给着色器传值
+
+  前面定义的每个着色器，都需要传入一个值，才能完成工作。
+
+  要给着色器传值，必须先找到要接收值的变量。
+
+  * uniform变量
+    * 调用`gl.getUniformLocation()`方法。这个方法返回一个对象，表示该uniform变量在内存中的位置
+    
+      ```javascript
+      let uColor = gl.getUniformLocation(program, 'uColor');
+      ```
+    
+    * 使用这个位置来完成赋值。`gl.uniform4fv()`
+    
+      ```javascript
+      gl.uniform4fv(uColor, [0, 0, 0, 1]);
+      ```
+    
+  * attribute变量
+    * 调用`gl.getAttribLocation()`方法，找到变量的内存地址
+    
+      ```javascript
+      let aVertexPosition = gl.getAttribLocation(program, 'aVertexPosition');
+      ```
+    
+    * 调用`gl.enableVertexAttribArray()`来启用
+    
+      ```javascript
+      gl.entableVertextAttribArray(aVertexPosition);
+      ```
+    
+    * 创建一个指向调用`gl.bindBuffer()`指定的缓冲区的指针，并将他保存在aVertexPosition中，可以在后面由顶点着色器使用。
+    
+      ```javascript
+      gl.vertexAttribPointer(aVertexPosition, itemSize, gl.FLOAT, false, 0, 0);
+      ```
+
+* 调试着色器和程序
+
+  与WebGL中的其他操作类似，着色器操作也可能失败，而且是静默失败。
+
+  如果想知道发生了什么错误，必须手工通过WebGL上下文获取关于着色器或程序的信息。
+
+  对于**着色器**，可以调用`gl.getShaderParameter()`方法取得编译之后的编译状态。比如下面的代码：
+
+  ```javascript
+  if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+  		alert(gl.getShaderInfoLog(vertexShader));
+  }
+  ```
+
+  检查了vertexShader编译的状态。如果编译成功，调用`gl.getShaderParameter`时会返回true，如果返回false则说明编译出错了，此时可以调用`gl.getShaerInfoLog`并传入着色器取得错误信息，这个方法返回一个字符串消息，显示问题所在。
+
+  以上方式即可用于顶点着色器，也可用于片段着色器。
+
+  **着色器程序**也可能失败，也有类似的方法。`gl.getProgramParameter`用于检测状态。
+
+  最常见的程序错误发生在链接阶段，可以使用以下代码来检查：
+
+  ```javascript
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+  		alert(gl.getProgramInfoLog(program));
+  }
+  ```
+
+  同样，`gl.getProgramParameter`会在链接成功时返回true，失败时返回false。
+
+  以上这些方法主要在开发时用于辅助调试。只要没有外部依赖，在产品环境中就可以放心地删除它们。
+
+* GLSL 100升级到GLSL 300
+
+  WebGL2的主要变化是升级到了GLSL 3.00 ES着色器，这个升级暴露了很多新的着色器功能，包括3D纹理等在支持OpenGL ES 3.0的设备上都有的功能。
+  
+  首先getContext要获取webgl2的上下文:
+  
+  ```javascript
+  gl = drawing.getContext("webgl2", { alpha: false }); 
+  ```
+  
+  要使用升级版的着色器，着色器代码的第一行必须是：
+  
+  ```
+  #version 300 es
+  ```
+  
+  其他一些语法的变化：
+  
+  1. 顶点attribute变量要使用in而不是attribute关键字声明
+  
+     ```glsl
+     in vec2 aVertexPosition; // 顶点着色器
+     void main() {
+     	gl_Position = vec4(aVertexPosition, 0.0, 1.0);
+     }
+     ```
+  
+  2. 使用varying关键字为顶点或片段着色器声明的变量，现在必须根据相应着色器的行为改为使用in或out。
+  
+  3. 预定义的输出变量`gl_FragColor`没有了，片段着色器必须为颜色输出声明自己的out变量。
+  
+     ```glsl
+     precision mediump float; // 添加如下精度描述，不加这行会看到报错
+     uniform vec4 uColor; // 片段着色器
+     out vec4 fragColor; // 预定义的输出变量gl_FragColor没有了，必须为颜色输出声明自己的out变量
+     void main() {
+     	fragColor = uColor;
+     }
+     ```
+  
+  4. 纹理查找函数`texture2D`和`textureCube`统一成了一个`texture`函数
+
+##### 8. 绘图
+
+[codepen-webgl2](https://codepen.io/yeying0827/pen/LYXJEMN)
+
+**WebGL只能绘制三种形状：点、线和三角形**。其他形状必须通过这三种基本形状在3D空间的组合来绘制。
+
+WebGL绘图要使用`drawArrays()`和`drawElements()`方法，前者使用数组缓冲区，后者操作元素数组缓冲区。
+
+`drawArrays`和`drawElements`的第一个参数都表示要绘制形状的常量，有如下常量可选：
+
+* `gl.POINTS`：将每个顶点当成一个点来绘制
+
+* `gl.LINES`：将数组作为一系列顶点，在这些顶点间绘制直线。
+
+  每个顶点既是起点也是终点。因此数组中的顶点必须是偶数个才能开始绘制。
+
+* `gl.LINE_LOOP`：将数组作为一系列顶点，从第一个顶点到第二个顶点绘制一条直线，再从第二个顶点到第三个顶点绘制一条直线，以此类推，直到绘制到最后一个顶点；再从最后一个顶点到第一个顶点绘制一条直线。
+
+  绘制出形状的轮廓。闭环。
+
+* `gl.LINE_STRIP`：与`LINE_LOOP`类似，区别在于不会从最后一个顶点到第一个顶点绘制直线。
+
+* `gl.TRIANGLES`：将数组作为一系列顶点，在这些顶点间绘制三角形。如无特殊指定，每个三角形都分开绘制，不共享顶点。
+
+* `gl.TRIANGLES_STRIP`：类似于`TRIANGLES`，区别在于从第四个点开始，每个点会作为第三个顶点与其前面的两个顶点构成三角形。
+
+* `gl.TRIANGLES_PAN`：类似于`TRIANGLES`，区别在于从第四个点开始，每个点会作为第三个顶点与其前面的一个顶点和第一个顶点构成三角形。
+
+`drawArrays`的第二个参数，是数组缓冲区的起点索引
+
+第三个参数，是数组缓冲区包含的顶点集合的数量。
+
+以下代码示例在画布绘制一个三角形：
+
+```javascript
+function drawTriangle(gl, program) {
+   // 定义3个顶点的x坐标和y坐标
+   let vertices = new Float32Array([0, 1, 1, -1, -1, -1]),
+      buffer = gl.createBuffer(),
+      vertextSetSize = 2,
+      vertextSetCount = vertices.length / vertextSetSize, // 计算顶点数
+      uColor,
+      aVertexPosition;
+   // 将数据放入缓冲区
+   gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+   gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW); // 数据（顶点信息）加载一次，在多次绘制中使用
+   // 给片段着色器传入颜色
+   uColor = gl.getUniformLocation(program, "uColor");
+   gl.uniform4fv(uColor, [0, 1, 0, 1]); // 绿色，颜色信息传递给片段着色器
+   // 把顶点信息传给着色器
+   aVertexPosition = gl.getAttribLocation(program, "aVertexPosition");
+   gl.enableVertexAttribArray(aVertexPosition); // 启用缓冲区
+   // 每两个点代表一个顶点信息，三个顶点坐标[0,1]（顶上中间） [1,-1]（右下角） [-1,-1]（左下角）
+   gl.vertexAttribPointer(aVertexPosition, vertextSetSize, gl.FLOAT, false, 0, 0); // 创建指针指向缓冲区
+   // 绘制三角形
+   gl.drawArrays(gl.TRIANGLES, 0, vertextSetCount);
+}
+```
+
+说明：
+
+* 首先，定义一个Float32Array变量，它包含3组顶点信息。
+
+  一个顶点的位置信息使用一个包含2个元素的数组表示（vertextSetSize，数组大小），计算出顶点的数量（vertextSetCount）。顶点信息保存在了缓冲区。
+
+* 把颜色信息传给片段着色器
+
+* 调用`vertexAttribPointer`，使用缓冲区
+
+  * `gl.FLOAT`表示顶点坐标数值类型
+  * 第四个参数为布尔值，表示坐标不是标准的
+  * 第五个参数是步长值（stride value），表示跳过多个数组元素取得下一个值，不用跳过就传入0
+  * 最后一个参数是起始偏移量，0表示从第一个数组元素开始
+
+* 调用`drawArrays`绘制三角形
+
+  第一个参数指定为`TRIANGLES`，就可以从(0,1)到(1,-1)再到(-1,-1)绘制一个三角形，并填充传给片段着色器的颜色。
+
+  第二个参数表示缓冲区的起始偏移量。
+
+  第三个参数是要读取的顶点数量。
+
+  通过修改第一个参数，可以修改绘制三角形的方式，比如：`gl.LINE_LOOP`、`gl.LINE_STRIP`。
+
+##### 9. 纹理
+
+WebGL纹理可以使用DOM中的图片。
+
+* 使用`gl.createTexture()`方法创建新的纹理；
+
+* 将图片绑定到这个纹理；
+
+  如果图片还没有加载，则可以创建一个Image对象来动态加载。
+
+  图片加载完成后才能初始化纹理，因此在图片的load事件之后才能使用纹理。例子：
+
+  ```javascript
+  let image = new Image(),
+      texture;
+  image.src = "smile.gif";
+  image.onload = function () {
+    texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParamateri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    
+    // 清除当前纹理
+    gl.bindTexture(gl.TEXTURE_2D, null);
+  }
+  ```
+
+除了使用DOM图片，这些步骤跟在OpenGL中创建纹理是一样的，最大的区别：使用`gl.pixelStorei()`设置了像素存储格式。
+
+常量`gl.UNPACK_FLIP_Y_WEBGL`是WebGL独有的，在基于Web加载图片时通常要使用。原因在于：GIF、JPEG和PNG图片使用的坐标系统与WebGL内部的坐标系统不一样；如果不使用这个标志，图片就会倒过来。
+
+注：用于纹理的图片必须跟当前页面同源，或者是来自启用了跨源资源共享（CORS，Cross-Origin Resource Sharing）的服务器上。
+
+上述书中贴的代码暂时还没搞清楚怎么运行，以下是查到的一点资料：
+
+* [WebGL基础-WebGL图像处理](https://webglfundamentals.org/webgl/lessons/zh_cn/webgl-image-processing.html)
+
+* [WebGL基础-WebGL渲染到纹理](https://webglfundamentals.org/webgl/lessons/zh_cn/webgl-render-to-texture.html)
+* [MDN-在WebGL中使用纹理](https://developer.mozilla.org/zh-CN/docs/Web/API/WebGL_API/Tutorial/Using_textures_in_WebGL)
+
+##### 10. 读取像素
+
+读取像素的`readPixels()`方法与OpenGL中的方法有同样的参数，只不过最后一个参数必须是定型数组。
+
+像素信息是从帧缓冲区读出来并放到这个定型数组中的。
+
+`readPixels()`方法的参数包括：x和y坐标、宽度、高度、图像格式、类型和定型数组。
+
+* 前四个参数用于指定要读取像素的位置；
+* 图像格式：几乎总是`gl.RGBA`；
+* 类型：指的是要存储在定型数组中的数据类型
+  * `gl.UNSIGNED_BYTE`：定型数组必须是`Uint8Array`
+  * `gl.UNSIGNED_SHORT_5_6_5`、`gl.UNSIGNED_SHORT_4_4_4_4`或`gl.UNSIGNED_5_5_5_1`：定型数组必须是`Uint16Array`
+
+例子：
+
+```javascript
+let pixels = new Uint8Array(25*25);
+gl.readPixels(0, 0, 25, 25, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+```
+
+读取了帧缓冲区中25像素 x 25像素大小的区域，并把读到的像素信息保存在pixels数组中，其中每个像素的颜色在这个数组中都以4个值表示，分别代表红、绿、蓝和透明度，每个数组值的取值范围是0~255。
+
+别忘了先按照预期存储的数据量初始化定型数组。
+
+> 注：
+>
+> 在浏览器绘制更新后的WebGL图像之前调用`readPixels()`没有问题。但在绘制完成后，帧缓冲区会恢复到其初始清除状态，此时调用`readPixels()`会得到与清除状态一致的像素数据。
+>
+> 如果想在绘制之后读取像素，则必须使用前面所说的`preserveDrawingBuffer`选项初始化WebGL上下文：
+>
+> `let gl = drawing.getContext("webgl", { preserveDrawingBuffer: true });`
+>
+> 设置这个标志可以强制帧缓冲区在下一次绘制之前保持上一次绘制的状态。这个选项可能会影响性能，因此尽量不要使用。
+
+#### WebGL1与WebGL2
+
+WebGL1代码几乎完全与WebGL2兼容。
+
+在使用WebGL2上下文时，唯一可能涉及修改代码以保证兼容性的就是扩展。在WebGL2中，很多扩展都变成了默认功能。
+
+例子：
+
+```javascript
+// 在WebGL1中使用绘制缓冲区，需要先测试相应扩展后再使用：
+let ext = gl.getExtension('WEBGL_draw_buffers');
+
+if (!ext) {
+  // 没有扩展的代码
+} else {
+  ext.drawBuffersWEBGL([/*...*/])
+}
+                       
+// 在WebGL2中，这里的检测代码就不需要了，因为这个扩展已经直接暴露在上下文对象上了
+gl.drawBuffers([/*...*/]);
+```
+
+以下特性都已成为WebGL2的标准特性：
+
+* ANGLE_instanced_arrays
+* EXT_blend_minmax
+* EXT_frag_depth
+* EXT_shader_texture_lod
+* OES_element_index_uint
+* OES_standard_derivatives
+* OES_texture_float
+* OES_texture_float_linear
+* OES_vertex_array_object
+* WEBGL_depth_texture
+* WEBGL_draw_buffers
+* Vertex shader texture access
+
+要了解WebGL更新的内容，可以参考WebGL2Fundamentals网站上的文章[WebGL2 from WebGL1](https://webgl2fundamentals.org/webgl/lessons/webgl1-to-webgl2.html)

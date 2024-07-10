@@ -44,7 +44,7 @@ ECMAScript脚本语言标准：ECMA-262（TC39，第39技术委员会）
 
 第7版（2016.6）：少量语法层面的增强，如Array.prototype.includes和指数操作符
 
-第8版（2017.6）：增加了异步函数（async/await）、SharedArrayBuffer及Atomics API，以及Object.values()/Object.entreis()/Object.getOwnPropertyDescriptors()和字符串填充方法（？），明确支持对象字面量最后的逗号。
+第8版（2017.6）：增加了异步函数（async/await）、SharedArrayBuffer及Atomics API，以及Object.values()/Object.entries()/Object.getOwnPropertyDescriptors()和字符串填充方法（？），明确支持对象字面量最后的逗号。
 
 第9版（2018.6）：异步迭代、剩余和扩展属性、一组新的正则表达式特性、Promise finally()，以及模板字面量修订
 

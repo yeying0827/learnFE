@@ -62,6 +62,7 @@ async function foo2() {
     console.log(111);
     // console.log( 'await', await Promise.resolve(333) );
     Promise.reject(333);
+    // await Promise.reject(333);
     console.log(334);
 }
 foo2().catch(console.log);

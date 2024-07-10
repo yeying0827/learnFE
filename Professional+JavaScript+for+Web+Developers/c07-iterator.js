@@ -83,8 +83,11 @@ generatorObject.next(); // foobar
 generatorObject.next();
 
 function* generatorFn3() {
+	console.log(`第一个yield`);
 	yield 'foo';
+	console.log(`第二个yield`);
 	yield 'bar';
+	console.log(`第三个return`);
 	return 'baz';
 }
 let g3 = generatorFn3();
